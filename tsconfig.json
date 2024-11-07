@@ -1,0 +1,25 @@
+{
+  "compilerOptions": {
+    "module": "CommonJS",
+    "target": "ES6",
+    "outDir": "./dist",
+    "rootDir": "./",  // Update to include the parent directory, not just 'src'
+    "esModuleInterop": true,
+    "moduleResolution": "node",
+    "strict": true,
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "allowSyntheticDefaultImports": true,
+    "typeRoots": [
+      "node_modules/@types", 
+      "types"  
+    ]
+  },
+  "include": [
+    "src/**/*",  // Include everything in the src folder
+    "utils/**/*" // Include everything in the utils folder outside of src
+  ],
+  "exclude": [
+    "node_modules"
+  ]
+}
