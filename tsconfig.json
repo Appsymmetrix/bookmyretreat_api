@@ -3,7 +3,7 @@
     "module": "CommonJS",
     "target": "ES6",
     "outDir": "./dist",
-    "rootDir": "./",  // Update to include the parent directory, not just 'src'
+    "rootDir": "./",  
     "esModuleInterop": true,
     "moduleResolution": "node",
     "strict": true,
@@ -12,14 +12,13 @@
     "allowSyntheticDefaultImports": true,
     "typeRoots": [
       "node_modules/@types", 
-      "types"  
-    ]
+      "types.d.ts",
+    ],
+    "types": ["node", "express"] 
+
   },
-  "include": [
-    "src/**/*",  // Include everything in the src folder
-    "utils/**/*" // Include everything in the utils folder outside of src
-  ],
-  "exclude": [
+   "include": ["src/**/*.ts", "src/types.d.ts","utils/**/*"],
+   "exclude": [
     "node_modules"
   ]
 }

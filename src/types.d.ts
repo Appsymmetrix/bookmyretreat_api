@@ -1,16 +1,13 @@
-import { User } from './models/User'; // Adjust the path if needed
+import { IUser } from "../models/User";
+import express from "express";
 
 declare global {
   namespace Express {
     interface Request {
-      user: {
-        id: string;
-        role: string;
-      };
+      user?: Omit<IUser, "password" | "createdAt">;
     }
   }
 }
-
 
 declare namespace NodeJS {
   export interface ProcessEnv {

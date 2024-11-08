@@ -2,11 +2,7 @@ import { Request, Response } from "express";
 import bcrypt from "bcryptjs";
 import User, { IUser } from "../models/User";
 import dotenv from "dotenv";
-import {
-  loginValidation,
-  userValidation,
-  userValidationPartial,
-} from "../../utils/validation";
+import { userValidation, userValidationPartial } from "../../utils/validation";
 import jwt from "jsonwebtoken";
 import mongoose from "mongoose";
 import { sendResetEmail } from "../../utils/store";
@@ -84,15 +80,7 @@ export const loginUser = async (
 ): Promise<Response | void> => {
   const { email, password } = req.body;
 
-  const { error } = loginValidation(req.body);
-  if (error) {
-    return res
-      .status(400)
-      .json({ sucess: false, message: error.details[0].message });
-  }
-
   try {
-    // Check if user exists in the database
     const user = await User.findOne({ email });
     if (!user) {
       return res.status(400).json({ message: "User not found" });
@@ -100,25 +88,27 @@ export const loginUser = async (
 
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
-      return res.status(400).json({
-        success: false,
-        message: "Password does not match",
-      });
+      return res.status(400).json({ message: "Incorrect password" });
     }
 
-    const payload = {
-      id: user._id,
-      role: user.role,
-    };
+    const token = jwt.sign(
+      {
+        id: user._id,
+        email: user.email,
+        role: user.role,
+        name: user.name,
+        mobileNumber: user.mobileNumber,
+        city: user.city,
+        countryCode: user.countryCode,
+      },
+      process.env.ACCESS_TOKEN_SECRET as string,
+      { expiresIn: "1h" }
+    );
 
-    // Generate a JWT token with a 1-hour expiration
-    const token = jwt.sign(payload, ACCESS_TOKEN_SECRET, { expiresIn: "1h" });
-
-    // Return a success response with the token and user details
     return res.status(200).json({
-      sucess: true,
+      success: true,
       message: "Login successful",
-      token: token,
+      token,
       user: {
         id: user._id,
         name: user.name,
@@ -129,8 +119,8 @@ export const loginUser = async (
         role: user.role,
       },
     });
-  } catch (err) {
-    console.error(err);
+  } catch (error) {
+    console.error(error);
     return res.status(500).json({ message: "Server error" });
   }
 };
@@ -159,11 +149,10 @@ export const updateUser = async (
     }
 
     const updatedUser = await User.findByIdAndUpdate(userId, updates, {
-      new: true, // Return the updated document
-      runValidators: true, // Run schema validation
+      new: true,
+      runValidators: true,
     });
 
-    // If the update was successful, return the updated user details
     return res.status(200).json({
       success: true,
       message: "User updated successfully",
@@ -189,7 +178,6 @@ export const getUserById = async (
 ): Promise<Response | void> => {
   const { userId } = req.params;
 
-  // Check if userId is provided
   if (!userId) {
     return res.status(400).json({
       success: false,
@@ -205,10 +193,8 @@ export const getUserById = async (
   }
 
   try {
-    // Attempt to find the user by the given userId
     const user = await User.findById(userId);
 
-    // If the user is not found, return an error response
     if (!user) {
       return res.status(404).json({
         success: false,
@@ -250,28 +236,56 @@ export const forgotPassword = async (
     }
 
     const resetCode = generateResetCode();
+
     const expires = Date.now() + 3600000;
 
-    const existingResetRecord = await PasswordReset.findOne({ email });
-
-    if (existingResetRecord) {
-      existingResetRecord.resetCode = resetCode;
-      existingResetRecord.expires = expires;
-      await existingResetRecord.save();
-    } else {
-      await PasswordReset.create({ email, resetCode, expires });
-    }
+    await PasswordReset.updateOne(
+      { email },
+      { email, resetCode, expires },
+      { upsert: true }
+    );
 
     await sendResetEmail(email, resetCode);
 
     return res.status(200).json({
       success: true,
       message: "Password reset code sent to your email",
-      data: {
-        email,
-        resetCode,
-        expires: new Date(expires).toISOString(),
-      },
+    });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
+export const verifyResetCode = async (
+  req: Request,
+  res: Response
+): Promise<Response | void> => {
+  const { email, resetCode } = req.body;
+
+  try {
+    const resetData = await PasswordReset.findOne({ email });
+    if (!resetData) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Reset code not found" });
+    }
+
+    if (resetCode !== resetData.resetCode) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid reset code" });
+    }
+
+    if (Date.now() > resetData.expires) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Reset code has expired" });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Reset code verified successfully",
     });
   } catch (err) {
     console.error(err);
@@ -283,7 +297,7 @@ export const resetPassword = async (
   req: Request,
   res: Response
 ): Promise<Response | void> => {
-  const { email, resetCode, newPassword } = req.body;
+  const { email, newPassword } = req.body;
 
   try {
     const user = await User.findOne({ email });
@@ -293,33 +307,10 @@ export const resetPassword = async (
         .json({ success: false, message: "User not found" });
     }
 
-    const resetData = await PasswordReset.findOne({ email });
-    if (!resetData) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Reset code not found" });
-    }
-
-    // Validate the reset code
-    if (resetCode !== resetData.resetCode) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Invalid reset code" });
-    }
-
-    // Check if the reset code has expired
-    if (Date.now() > resetData.expires) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Reset code has expired" });
-    }
-
-    // Hash the new password and update in the database
     const hashedPassword = await bcrypt.hash(newPassword, 10);
     user.password = hashedPassword;
     await user.save();
 
-    // Delete the reset code from the database after successful password reset
     await PasswordReset.deleteOne({ email });
 
     return res.status(200).json({
@@ -327,7 +318,7 @@ export const resetPassword = async (
       message: "Password reset successful",
     });
   } catch (err) {
-    console.error("Error:", err);
+    console.error(err);
     return res.status(500).json({ success: false, message: "Server error" });
   }
 };
