@@ -6,7 +6,7 @@ import mongoose from "mongoose";
 import User from "../models/User";
 
 export const addReview = async (req: Request, res: Response) => {
-  const { error } = reviewSchema.validate(req.body); // Using updated schema
+  const { error } = reviewSchema.validate(req.body);
   if (error) {
     return res.status(400).json({ message: error.details[0].message });
   }

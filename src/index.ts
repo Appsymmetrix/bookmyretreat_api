@@ -10,6 +10,8 @@ import wishlistRoutes from "./routes/wishlistRoutes";
 import bookingRoutes from "./routes/bookingRoutes";
 import { errorHandler } from "./middleware/errorHandler";
 import subscriptionRoutes from "./routes/subscriptionRoutes";
+import notificationRoutes from "./routes/notificationRoutes";
+import uploadRoutes from "./routes/uploadRoutes";
 
 dotenv.config();
 
@@ -27,10 +29,12 @@ app.use(express.urlencoded({ extended: true }));
 app.use("/api/auth", authRoutes);
 app.use("/api/category", categoryRoutes);
 app.use("/api/retreats", retreatRoutes);
-app.use("/api", reviewRoutes);
-app.use("/api", wishlistRoutes);
-app.use("/api", bookingRoutes);
-app.use("/api", subscriptionRoutes);
+app.use("/api/wishlists", wishlistRoutes);
+app.use("/api/notification", notificationRoutes);
+app.use("/api/review", reviewRoutes);
+app.use("/api/booking", bookingRoutes);
+app.use("/api/subscribtion", subscriptionRoutes);
+app.use("/api/upload", uploadRoutes);
 
 const startServer = async () => {
   try {

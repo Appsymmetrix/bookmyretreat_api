@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import Retreat from "../models/RetreatModal";
-import Wishlist from "../models/WishList";
+import Wishlist from "../models/Wishlist";
 
 export const addToWishlist = async (
   req: Request,
@@ -75,7 +75,7 @@ export const getUserWishlist = async (
   const { userId } = req.params;
 
   try {
-    const userWishlist = await Wishlist.find({ userId });
+    const userWishlist = await Wishlist.find({ userId }).populate("retreatId");
 
     if (!userWishlist || userWishlist.length === 0) {
       return res.status(404).json({
@@ -84,12 +84,10 @@ export const getUserWishlist = async (
       });
     }
 
-    const retreatIds = userWishlist.map((item) => item.retreatId);
-
     return res.status(200).json({
       success: true,
       message: "User's wishlist fetched successfully",
-      data: retreatIds,
+      data: userWishlist,
     });
   } catch (err) {
     console.error(err);

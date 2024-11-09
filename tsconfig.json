@@ -3,22 +3,16 @@
     "module": "CommonJS",
     "target": "ES6",
     "outDir": "./dist",
-    "rootDir": "./",  
+    "rootDir": "./",
     "esModuleInterop": true,
     "moduleResolution": "node",
     "strict": true,
     "resolveJsonModule": true,
     "skipLibCheck": true,
     "allowSyntheticDefaultImports": true,
-    "typeRoots": [
-      "node_modules/@types", 
-      "types.d.ts",
-    ],
-    "types": ["node", "express"] 
-
+    "typeRoots": ["node_modules/@types", "src/types"],
+    "types": ["node", "express"]
   },
-   "include": ["src/**/*.ts", "src/types.d.ts","utils/**/*"],
-   "exclude": [
-    "node_modules"
-  ]
+  "include": ["src/**/*.ts", "src/types.d.ts", "utils/**/*"],
+  "exclude": ["node_modules"]
 }

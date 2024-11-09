@@ -36,6 +36,7 @@ export const createBooking = async (
       accommodation,
       totalAmount,
       orderId,
+      status: "pending",
     });
 
     await newBooking.save();
@@ -51,6 +52,7 @@ export const createBooking = async (
         personName: newBooking.personName,
         accommodation: newBooking.accommodation,
         totalAmount: newBooking.totalAmount,
+        status: newBooking.status,
         userId: newBooking.userId,
       },
     });
@@ -94,10 +96,127 @@ export const getBookingsByUserId = async (
         personName: booking.personName,
         accommodation: booking.accommodation,
         totalAmount: booking.totalAmount,
+        status: booking.status,
       })),
     });
   } catch (err) {
     console.error("Error fetching bookings:", err);
+    return res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
+export const acceptBooking = async (
+  req: Request,
+  res: Response
+): Promise<Response | void> => {
+  const { bookingId } = req.params;
+
+  if (!mongoose.Types.ObjectId.isValid(bookingId)) {
+    return res.status(400).json({
+      success: false,
+      message: "Invalid Booking ID",
+    });
+  }
+
+  try {
+    const booking = await Booking.findByIdAndUpdate(
+      bookingId,
+      { status: "accepted" },
+      { new: true }
+    );
+
+    if (!booking) {
+      return res.status(404).json({
+        success: false,
+        message: "Booking not found",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Booking accepted successfully",
+      booking,
+    });
+  } catch (err) {
+    console.error("Error accepting booking:", err);
+    return res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
+// Deny a booking
+export const denyBooking = async (
+  req: Request,
+  res: Response
+): Promise<Response | void> => {
+  const { bookingId } = req.params;
+
+  if (!mongoose.Types.ObjectId.isValid(bookingId)) {
+    return res.status(400).json({
+      success: false,
+      message: "Invalid Booking ID",
+    });
+  }
+
+  try {
+    const booking = await Booking.findByIdAndUpdate(
+      bookingId,
+      { status: "denied" },
+      { new: true }
+    );
+
+    if (!booking) {
+      return res.status(404).json({
+        success: false,
+        message: "Booking not found",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Booking denied successfully",
+      booking,
+    });
+  } catch (err) {
+    console.error("Error denying booking:", err);
+    return res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
+export const getAllBookingsForOrganizer = async (
+  req: Request,
+  res: Response
+): Promise<Response | void> => {
+  try {
+    const totalBookings = await Booking.countDocuments();
+    const pendingApproval = await Booking.countDocuments({ status: "pending" });
+    const income = await Booking.aggregate([
+      { $match: { status: "accepted" } },
+      { $group: { _id: null, totalIncome: { $sum: "$totalAmount" } } },
+    ]);
+
+    const bookings = await Booking.find().exec();
+
+    return res.status(200).json({
+      success: true,
+      message: "Booking statistics retrieved successfully",
+      data: {
+        totalBookings,
+        pendingApproval,
+        income: income[0]?.totalIncome || 0,
+        bookings: bookings.map((booking) => ({
+          id: booking._id,
+          orderId: booking.orderId,
+          dates: booking.dates,
+          numberOfPeople: booking.numberOfPeople,
+          personName: booking.personName,
+          accommodation: booking.accommodation,
+          totalAmount: booking.totalAmount,
+          status: booking.status,
+        })),
+      },
+    });
+  } catch (err) {
+    console.error("Error retrieving booking data:", err);
     return res.status(500).json({ success: false, message: "Server error" });
   }
 };

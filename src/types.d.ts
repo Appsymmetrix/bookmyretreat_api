@@ -1,19 +1,11 @@
-import { IUser } from "../models/User";
-import express from "express";
+// src/types.d.ts
+
+import { IUser } from "../models/User"; // Adjust the import path based on where your IUser model is
 
 declare global {
   namespace Express {
     interface Request {
-      user?: Omit<IUser, "password" | "createdAt">;
+      user?: IUser;
     }
-  }
-}
-
-declare namespace NodeJS {
-  export interface ProcessEnv {
-    AWS_ACCESS_KEY_ID: string;
-    AWS_SECRET_ACCESS_KEY: string;
-    AWS_REGION: string;
-    EMAIL_SOURCE: string;
   }
 }

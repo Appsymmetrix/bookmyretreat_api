@@ -66,6 +66,10 @@ export const retreatValidationPartial = (data: any) => {
     price: Joi.number().positive().required(),
     locations: locationSchema.required(),
     features: Joi.string().required(),
+    benefits: Joi.string().required(),
+    programs: Joi.string().required(),
+    includedInPackage: Joi.string().required(),
+    includedInPrice: Joi.string().required(),
     availability: Joi.object({
       startDate: Joi.date().required(),
       endDate: Joi.date().required(),
@@ -76,8 +80,8 @@ export const retreatValidationPartial = (data: any) => {
         Joi.object({
           id: Joi.string()
             .regex(/^[0-9a-fA-F]{24}$/)
-            .required(), // MongoDB ObjectId validation
-          name: Joi.string().required(), // Name field is required
+            .required(),
+          name: Joi.string().required(),
         })
       )
       .optional(),
@@ -87,8 +91,8 @@ export const retreatValidationPartial = (data: any) => {
         Joi.object({
           id: Joi.string()
             .regex(/^[0-9a-fA-F]{24}$/)
-            .required(), // MongoDB ObjectId validation
-          name: Joi.string().required(), // Name field is required
+            .required(),
+          name: Joi.string().required(),
         })
       )
       .optional(),
@@ -98,6 +102,7 @@ export const retreatValidationPartial = (data: any) => {
 
   return schema.validate(data, { abortEarly: false });
 };
+
 export const categorySchema = Joi.object({
   name: Joi.string().min(3).max(50).required().messages({
     "string.empty": "Category name is required",
@@ -138,6 +143,10 @@ export const bookingValidationSchema = Joi.object({
   personName: Joi.string().min(2).max(50).required().label("Person Name"),
   accommodation: Joi.string().required().label("Accommodation"),
   totalAmount: Joi.number().min(0).required().label("Total Amount"),
+  status: Joi.string()
+    .valid("pending", "accepted", "denied")
+    .default("pending")
+    .label("Status"),
 });
 
 export const subscriptionValidator = Joi.object({

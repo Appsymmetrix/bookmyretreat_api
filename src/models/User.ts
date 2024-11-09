@@ -1,7 +1,10 @@
-// models/User.ts
 import mongoose, { Schema, Document } from "mongoose";
 
-// Define the IUser interface that extends mongoose Document
+export interface INotification {
+  title: string;
+  message: string;
+}
+
 export interface IUser extends Document {
   name: string;
   email: string;
@@ -11,7 +14,13 @@ export interface IUser extends Document {
   city: string;
   countryCode: string;
   role: "user" | "organiser" | "admin" | undefined;
+  notifications: INotification[];
 }
+
+const NotificationSchema: Schema = new Schema({
+  title: { type: String, required: true },
+  message: { type: String, required: true },
+});
 
 const UserSchema: Schema = new Schema(
   {
@@ -28,12 +37,11 @@ const UserSchema: Schema = new Schema(
       enum: ["user", "organiser", "admin"],
       default: "user",
     },
+    notifications: { type: [NotificationSchema], default: [] },
   },
   { timestamps: true }
 );
 
-// Create the User model using the IUser interface
 const User = mongoose.model<IUser>("User", UserSchema);
 
-// Export the model as well as the interface IUser
 export default User;

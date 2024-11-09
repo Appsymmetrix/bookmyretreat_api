@@ -1,7 +1,5 @@
-// models/RetreatModal.ts
 import mongoose, { Document, Schema, ObjectId } from "mongoose";
 
-// Define the Retreat interface and schema
 interface ILocation {
   name: string;
   description?: string;
@@ -17,6 +15,10 @@ interface IRetreat extends Document {
   price: number;
   locations: ILocation;
   features: string;
+  benefits: string;
+  programs: string;
+  includedInPackage: string;
+  includedInPrice: string;
   availability: {
     startDate: Date;
     endDate: Date;
@@ -45,6 +47,10 @@ const RetreatSchema: Schema = new Schema(
     price: { type: Number, required: true },
     locations: LocationSchema,
     features: { type: String, required: true },
+    benefits: { type: String, required: true },
+    programs: { type: String, required: true },
+    includedInPackage: { type: String, required: true },
+    includedInPrice: { type: String, required: true },
     availability: {
       startDate: { type: Date, required: true },
       endDate: { type: Date, required: true },

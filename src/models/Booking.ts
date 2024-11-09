@@ -11,6 +11,7 @@ export interface IBooking extends Document {
   accommodation: string;
   totalAmount: number;
   orderId: string;
+  status: "pending" | "accepted" | "denied";
 }
 
 const BookingSchema: Schema = new Schema({
@@ -24,6 +25,11 @@ const BookingSchema: Schema = new Schema({
   accommodation: { type: String, required: true },
   totalAmount: { type: Number, required: true },
   orderId: { type: String, required: true, unique: true },
+  status: {
+    type: String,
+    enum: ["pending", "accepted", "denied"],
+    default: "pending",
+  },
 });
 
 export default mongoose.model<IBooking>("Booking", BookingSchema);

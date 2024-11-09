@@ -14,12 +14,17 @@
     "@aws-sdk/client-ses": "^3.686.0",
     "aws-sdk": "^2.1692.0",
     "bcryptjs": "^2.4.3",
+    "cloudinary": "^2.5.1",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "express": "^4.21.1",
+    "express-async-handler": "^1.2.0",
     "joi": "^17.13.3",
     "jsonwebtoken": "^9.0.2",
-    "mongoose": "^8.8.0"
+    "mongoose": "^8.8.0",
+    "multer": "^1.4.5-lts.1",
+    "sharp": "^0.33.5",
+    "uuid": "^11.0.2"
   },
   "devDependencies": {
     "@types/aws-sdk": "^0.0.42",
@@ -28,8 +33,10 @@
     "@types/express": "^5.0.0",
     "@types/joi": "^17.2.2",
     "@types/jsonwebtoken": "^9.0.7",
+    "@types/multer": "^1.4.12",
     "@types/node": "^22.9.0",
     "@types/nodemailer": "^6.4.16",
+    "@types/uuid": "^10.0.0",
     "nodemon": "^3.1.7",
     "ts-node": "^10.9.2",
     "typescript": "^5.6.3"

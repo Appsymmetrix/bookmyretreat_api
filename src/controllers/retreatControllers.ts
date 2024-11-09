@@ -6,9 +6,19 @@ export const createRetreat = async (
   req: Request,
   res: Response
 ): Promise<Response | void> => {
-  // Validate the incoming request body
-  const { error } = retreatValidationPartial(req.body);
+  // Uncomment this section if you need to check user role and authorization
+  // const userRole = req?.user.role;
+  // if (!req.user) {
+  //   return res.status(401).json({ message: "Unauthorized: No user found." });
+  // }
+  // if (userRole !== "admin" && userRole !== "organiser") {
+  //   return res.status(403).json({
+  //     success: false,
+  //     message: "Forbidden: You do not have the necessary permissions",
+  //   });
+  // }
 
+  const { error } = retreatValidationPartial(req.body);
   if (error) {
     return res.status(400).json({
       success: false,
@@ -39,10 +49,16 @@ export const createRetreat = async (
 
     await newRetreat.save();
 
+    const formattedData = {
+      ...newRetreat.toObject(),
+      category: newRetreat.category?.map(({ id, name }) => ({ id, name })),
+      popular: newRetreat.popular?.map(({ id, name }) => ({ id, name })),
+    };
+
     return res.status(201).json({
       success: true,
       message: "Retreat created successfully",
-      data: newRetreat,
+      data: formattedData,
     });
   } catch (err) {
     console.error(err);
@@ -54,8 +70,18 @@ export const updateRetreat = async (
   req: Request,
   res: Response
 ): Promise<Response | void> => {
-  const { error } = retreatValidationPartial(req.body);
+  // const userRole = req?.user?.role;
+  // if (!req.user) {
+  //   return res.status(401).json({ message: "Unauthorized: No user found." });
+  // }
+  // if (userRole !== "admin" && userRole !== "organiser") {
+  //   return res.status(403).json({
+  //     success: false,
+  //     message: "Forbidden: You do not have the necessary permissions",
+  //   });
+  // }
 
+  const { error } = retreatValidationPartial(req.body);
   if (error) {
     return res.status(400).json({
       success: false,
@@ -100,6 +126,14 @@ export const deleteRetreat = async (
   req: Request,
   res: Response
 ): Promise<Response | void> => {
+  // const userRole = req?.user?.role;
+  // if (userRole !== "admin") {
+  //   return res.status(403).json({
+  //     success: false,
+  //     message: "Forbidden: You do not have the necessary permissions",
+  //   });
+  // }
+
   const { id } = req.params;
 
   try {
