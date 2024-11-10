@@ -12,7 +12,7 @@ const router = express.Router();
 const s3 = new AWS.S3({
   accessKeyId: "AKIA4MTWMT5NZ5SXUZHY",
   secretAccessKey: "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",
-  region: "ap-south-1",
+  region: "us-east-1",
 });
 
 const storage: multer.StorageEngine = multer.memoryStorage();
@@ -46,8 +46,8 @@ const uploadImages = async (req: Request, res: Response): Promise<void> => {
           .then((buffer) => {
             const uploadParams: AWS.S3.PutObjectRequest = {
               Bucket: req.query.bucketName
-                ? `retreat/${req.query.bucketName}`
-                : "retreat",
+                ? `bookmyretreat-v1/${req.query.bucketName}`
+                : "bookmyretreat-v1",
               Key: uniqueFilename,
               Body: buffer,
               ContentType: "image/webp",
