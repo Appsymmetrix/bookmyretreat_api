@@ -27,18 +27,26 @@ export const registerUser = async (
   if (error) {
     return res
       .status(400)
-      .json({ sucess: false, message: error.details[0].message });
+      .json({ success: false, message: error.details[0].message });
   }
 
-  const { name, email, password, mobileNumber, city, countryCode, role } =
-    req.body;
+  const {
+    name,
+    email,
+    password,
+    mobileNumber,
+    city,
+    countryCode,
+    role,
+    imageUrl,
+  } = req.body;
 
   try {
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res
         .status(400)
-        .json({ sucess: false, message: "Email is already registered" });
+        .json({ success: false, message: "Email is already registered" });
     }
 
     const salt = await bcrypt.genSalt(10);
@@ -52,6 +60,7 @@ export const registerUser = async (
       city,
       countryCode,
       role: role || "user",
+      imageUrl: imageUrl || "", // Store imageUrl if provided
     });
 
     await newUser.save();
@@ -66,6 +75,7 @@ export const registerUser = async (
         city: newUser.city,
         countryCode: newUser.countryCode,
         role: newUser.role,
+        imageUrl: newUser.imageUrl, // Include imageUrl in response
       },
     });
   } catch (err) {
@@ -148,6 +158,10 @@ export const updateUser = async (
         .json({ success: false, message: "User not found" });
     }
 
+    if (updates.imageUrl) {
+      user.imageUrl = updates.imageUrl;
+    }
+
     const updatedUser = await User.findByIdAndUpdate(userId, updates, {
       new: true,
       runValidators: true,
@@ -164,6 +178,7 @@ export const updateUser = async (
         city: updatedUser?.city,
         countryCode: updatedUser?.countryCode,
         role: updatedUser?.role,
+        imageUrl: updatedUser?.imageUrl, // Include the imageUrl in the response
       },
     });
   } catch (err) {
@@ -213,6 +228,7 @@ export const getUserById = async (
         city: user.city,
         countryCode: user.countryCode,
         role: user.role,
+        imageUrl: user?.imageUrl,
       },
     });
   } catch (err) {

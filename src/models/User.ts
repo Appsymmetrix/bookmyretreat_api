@@ -15,6 +15,7 @@ export interface IUser extends Document {
   countryCode: string;
   role: "user" | "organiser" | "admin" | undefined;
   notifications: INotification[];
+  imageUrl?: string; // Add the new field for the user's image URL
 }
 
 const NotificationSchema: Schema = new Schema({
@@ -38,6 +39,7 @@ const UserSchema: Schema = new Schema(
       default: "user",
     },
     notifications: { type: [NotificationSchema], default: [] },
+    imageUrl: { type: String, default: "" },
   },
   { timestamps: true }
 );

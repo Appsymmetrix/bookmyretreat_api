@@ -1,6 +1,7 @@
-import mongoose, { Schema, Document } from "mongoose";
+import mongoose, { Schema, Document, Types } from "mongoose";
 
 interface IReviewDetails {
+  _id?: Types.ObjectId;
   rating: number;
   comment: string;
   helpfulCount: number;

@@ -96,3 +96,52 @@ export const getReviewsByUserId = async (req: Request, res: Response) => {
     res.status(500).json({ message: "Failed to retrieve reviews", error });
   }
 };
+
+export const editReview = async (req: Request, res: Response) => {
+  const { userId, reviewId } = req.params;
+  const { rating, comment } = req.body;
+
+  if (
+    !mongoose.Types.ObjectId.isValid(userId) ||
+    !mongoose.Types.ObjectId.isValid(reviewId)
+  ) {
+    return res
+      .status(400)
+      .json({ message: "Invalid userId or reviewId format" });
+  }
+
+  if (typeof rating !== "number" || rating < 1 || rating > 5) {
+    return res.status(400).json({ message: "Rating must be between 1 and 5" });
+  }
+
+  try {
+    const userReview = await Review.findOne({ userId });
+
+    if (!userReview) {
+      return res
+        .status(404)
+        .json({ message: "Review not found for this user" });
+    }
+
+    const reviewIndex = userReview.reviews.findIndex(
+      (review) => review._id?.toString() === reviewId
+    );
+
+    if (reviewIndex === -1) {
+      return res.status(404).json({ message: "Review not found" });
+    }
+
+    userReview.reviews[reviewIndex].rating = rating;
+    userReview.reviews[reviewIndex].comment = comment;
+    userReview.reviews[reviewIndex].datePosted = new Date();
+
+    await userReview.save();
+
+    res.status(200).json({
+      message: "Review updated successfully",
+      reviews: userReview.reviews,
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Failed to update review", error });
+  }
+};

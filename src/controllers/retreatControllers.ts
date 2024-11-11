@@ -156,15 +156,21 @@ export const getAllRetreats = async (
   req: Request,
   res: Response
 ): Promise<Response | void> => {
-  const { page = 1, limit = 10 } = req.query;
+  const { lastId, limit = 10 } = req.query;
 
   try {
-    const retreats = await Retreat.find()
-      .skip((+page - 1) * +limit)
-      .limit(+limit);
+    let query = {};
+    if (lastId) {
+      query = { _id: { $gt: lastId } };
+    }
+
+    const retreats = await Retreat.find(query).limit(+limit).sort({ _id: 1 });
 
     const totalRetreats = await Retreat.countDocuments();
     const totalPages = Math.ceil(totalRetreats / +limit);
+
+    const nextLastId =
+      retreats.length > 0 ? retreats[retreats.length - 1]._id : null;
 
     return res.status(200).json({
       success: true,
@@ -172,8 +178,8 @@ export const getAllRetreats = async (
       data: {
         retreats,
         totalRetreats,
-        currentPage: +page,
         totalPages,
+        lastId: nextLastId,
       },
     });
   } catch (err) {
