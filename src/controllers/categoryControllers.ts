@@ -3,6 +3,17 @@ import { categorySchema, filterSchema } from "../../utils/validation";
 import Category from "../models/Category";
 import Popular from "../models/Filter";
 
+// Utility to handle database errors
+const handleDatabaseError = (err: any, res: Response) => {
+  console.error(err);
+  return res.status(500).json({ message: "Server error", error: err.message });
+};
+
+// Utility to check if category or filter already exists
+const checkExisting = async (model: any, name: string) => {
+  return await model.findOne({ name }).lean(); // Use lean to return plain objects
+};
+
 export const addCategory = async (req: Request, res: Response) => {
   const { error } = categorySchema.validate(req.body);
   if (error) {
@@ -11,8 +22,8 @@ export const addCategory = async (req: Request, res: Response) => {
 
   try {
     const { name } = req.body;
+    const existingCategory = await checkExisting(Category, name);
 
-    const existingCategory = await Category.findOne({ name });
     if (existingCategory) {
       return res.status(400).json({ message: "Category already exists" });
     }
@@ -20,7 +31,7 @@ export const addCategory = async (req: Request, res: Response) => {
     const newCategory = new Category({ name });
     const savedCategory = await newCategory.save();
 
-    res.status(201).json({
+    return res.status(201).json({
       message: "Category added successfully",
       category: {
         id: savedCategory._id,
@@ -28,7 +39,7 @@ export const addCategory = async (req: Request, res: Response) => {
       },
     });
   } catch (error) {
-    res.status(500).json({ message: "Failed to add category", error });
+    return handleDatabaseError(error, res);
   }
 };
 
@@ -40,43 +51,55 @@ export const addPopular = async (req: Request, res: Response) => {
 
   try {
     const { name } = req.body;
+    const existingFilter = await checkExisting(Popular, name);
 
-    const existingFilter = await Popular.findOne({ name });
     if (existingFilter) {
-      return res.status(400).json({ message: "Popular already exists" });
+      return res.status(400).json({ message: "Popular filter already exists" });
     }
 
     const newFilter = new Popular({ name });
     const savedFilter = await newFilter.save();
 
-    res.status(201).json({
-      message: "Popular added successfully",
+    return res.status(201).json({
+      message: "Popular filter added successfully",
       popular: {
         id: savedFilter._id,
         name: savedFilter.name,
       },
     });
   } catch (error) {
-    res.status(500).json({ message: "Failed to add filter", error });
+    return handleDatabaseError(error, res);
   }
 };
 
 export const getAllCategories = async (req: Request, res: Response) => {
   try {
-    const categories = await Category.find();
-    res.status(200).json({ categories });
+    const categories = await Category.find().lean(); // Use lean for better performance
+    if (!categories.length) {
+      return res.status(404).json({ message: "No categories found" });
+    }
+
+    return res.status(200).json({
+      message: "Categories retrieved successfully",
+      categories,
+    });
   } catch (error) {
-    res.status(500).json({ message: "Failed to retrieve categories", error });
+    return handleDatabaseError(error, res);
   }
 };
 
 export const getPopular = async (req: Request, res: Response) => {
   try {
-    const popular = await Popular.find({ isPopular: true });
-    res.status(200).json({ popular });
+    const popular = await Popular.find({ isPopular: true }).lean();
+    if (!popular.length) {
+      return res.status(404).json({ message: "No popular filters found" });
+    }
+
+    return res.status(200).json({
+      message: "Popular filters retrieved successfully",
+      popular,
+    });
   } catch (error) {
-    res
-      .status(500)
-      .json({ message: "Failed to retrieve popular filters", error });
+    return handleDatabaseError(error, res);
   }
 };

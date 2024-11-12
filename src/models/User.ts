@@ -18,17 +18,16 @@ export interface IUser extends Document {
   role: "user" | "organiser" | "admin" | undefined;
   notifications: INotification[];
   imageUrl?: string;
-  iat?: number; // Optional, to handle JWT's 'iat' property
-  exp?: number; // Optional, to handle JWT's 'exp' property
+  iat?: number;
+  exp?: number;
+  isEmailVerified: boolean;
 }
 
-// Notification Schema
 const NotificationSchema: Schema = new Schema({
   title: { type: String, required: true },
   message: { type: String, required: true },
 });
 
-// User Schema with iat and exp fields (optional)
 const UserSchema: Schema = new Schema(
   {
     name: { type: String, required: true, trim: true },
@@ -48,11 +47,11 @@ const UserSchema: Schema = new Schema(
     imageUrl: { type: String, default: "" },
     iat: { type: Number, required: false },
     exp: { type: Number, required: false },
+    isEmailVerified: { type: Boolean, default: false },
   },
   { timestamps: true }
 );
 
-// Create and export the User model
 const User = mongoose.model<IUser>("User", UserSchema);
 
 export default User;

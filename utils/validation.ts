@@ -18,6 +18,7 @@ export const userValidation = (data: any) => {
     countryCode: Joi.string().required(),
     role: Joi.string().valid("user", "admin", "organiser").optional(),
     imageUrl: Joi.string().uri().optional(),
+    isEmailVerified: Joi.boolean().optional(),
   });
 
   return schema.validate(data);

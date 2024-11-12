@@ -1,16 +1,20 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
-import { IUser } from "../models/User";
 import dotenv from "dotenv";
+import { IUser } from "../models/User";
 
 dotenv.config();
 
-interface RequestWithUser extends Request {
-  user?: Partial<IUser>;
+declare global {
+  namespace Express {
+    interface Request {
+      user?: Partial<IUser>;
+    }
+  }
 }
 
 export const verifyToken = (
-  req: RequestWithUser,
+  req: Request,
   res: Response,
   next: NextFunction
 ): void => {
@@ -43,23 +47,21 @@ export const verifyToken = (
       exp: decoded.exp,
     };
 
-    next();
+    return next();
   } catch (err) {
     res.status(401).json({ message: "Invalid or expired token." });
   }
 };
 
-export const authorizeRole = (allowedRoles: Array<IUser["role"]>) => {
-  return (req: RequestWithUser, res: Response, next: NextFunction): void => {
+export const authorizeRole = (allowedRoles: IUser["role"][]) => {
+  return (req: Request, res: Response, next: NextFunction): void => {
     const userRole = req.user?.role;
-
-    console.log(userRole, "userole");
 
     if (!userRole || !allowedRoles.includes(userRole)) {
       res.status(403).json({ message: "Forbidden: Insufficient permissions" });
       return;
     }
 
-    next();
+    return next();
   };
 };

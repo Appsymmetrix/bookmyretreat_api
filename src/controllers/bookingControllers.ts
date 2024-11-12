@@ -4,6 +4,14 @@ import { bookingValidationSchema } from "../../utils/validation";
 import { generateOrderId } from "../../utils/types";
 import mongoose from "mongoose";
 
+// Utility to check if ObjectId is valid
+const isValidObjectId = (id: string) => mongoose.Types.ObjectId.isValid(id);
+
+const handleDatabaseError = (err: any, res: Response) => {
+  console.error(err);
+  return res.status(500).json({ message: "Server error" });
+};
+
 export const createBooking = async (
   req: Request,
   res: Response
@@ -27,7 +35,6 @@ export const createBooking = async (
 
   try {
     const orderId = generateOrderId();
-
     const newBooking = new Booking({
       userId,
       dates,
@@ -40,25 +47,13 @@ export const createBooking = async (
     });
 
     await newBooking.save();
-
     return res.status(201).json({
       success: true,
       message: "Booking created successfully",
-      booking: {
-        id: newBooking._id,
-        orderId: newBooking.orderId,
-        dates: newBooking.dates,
-        numberOfPeople: newBooking.numberOfPeople,
-        personName: newBooking.personName,
-        accommodation: newBooking.accommodation,
-        totalAmount: newBooking.totalAmount,
-        status: newBooking.status,
-        userId: newBooking.userId,
-      },
+      booking: newBooking.toObject(),
     });
   } catch (err) {
-    console.error("Error creating booking:", err);
-    return res.status(500).json({ message: "Server error" });
+    return handleDatabaseError(err, res);
   }
 };
 
@@ -68,7 +63,7 @@ export const getBookingsByUserId = async (
 ): Promise<Response | void> => {
   const { userId } = req.params;
 
-  if (!mongoose.Types.ObjectId.isValid(userId)) {
+  if (!isValidObjectId(userId)) {
     return res.status(400).json({
       success: false,
       message: "Invalid User ID",
@@ -76,7 +71,7 @@ export const getBookingsByUserId = async (
   }
 
   try {
-    const bookings = await Booking.find({ userId }).exec();
+    const bookings = await Booking.find({ userId }).lean(); // Use lean to optimize performance
 
     if (bookings.length === 0) {
       return res.status(404).json({
@@ -88,20 +83,10 @@ export const getBookingsByUserId = async (
     return res.status(200).json({
       success: true,
       message: "Bookings retrieved successfully",
-      bookings: bookings.map((booking) => ({
-        id: booking._id,
-        orderId: booking.orderId,
-        dates: booking.dates,
-        numberOfPeople: booking.numberOfPeople,
-        personName: booking.personName,
-        accommodation: booking.accommodation,
-        totalAmount: booking.totalAmount,
-        status: booking.status,
-      })),
+      bookings,
     });
   } catch (err) {
-    console.error("Error fetching bookings:", err);
-    return res.status(500).json({ success: false, message: "Server error" });
+    return handleDatabaseError(err, res);
   }
 };
 
@@ -111,7 +96,7 @@ export const acceptBooking = async (
 ): Promise<Response | void> => {
   const { bookingId } = req.params;
 
-  if (!mongoose.Types.ObjectId.isValid(bookingId)) {
+  if (!isValidObjectId(bookingId)) {
     return res.status(400).json({
       success: false,
       message: "Invalid Booking ID",
@@ -123,7 +108,7 @@ export const acceptBooking = async (
       bookingId,
       { status: "accepted" },
       { new: true }
-    );
+    ).lean();
 
     if (!booking) {
       return res.status(404).json({
@@ -138,19 +123,17 @@ export const acceptBooking = async (
       booking,
     });
   } catch (err) {
-    console.error("Error accepting booking:", err);
-    return res.status(500).json({ success: false, message: "Server error" });
+    return handleDatabaseError(err, res);
   }
 };
 
-// Deny a booking
 export const denyBooking = async (
   req: Request,
   res: Response
 ): Promise<Response | void> => {
   const { bookingId } = req.params;
 
-  if (!mongoose.Types.ObjectId.isValid(bookingId)) {
+  if (!isValidObjectId(bookingId)) {
     return res.status(400).json({
       success: false,
       message: "Invalid Booking ID",
@@ -162,7 +145,7 @@ export const denyBooking = async (
       bookingId,
       { status: "denied" },
       { new: true }
-    );
+    ).lean();
 
     if (!booking) {
       return res.status(404).json({
@@ -177,8 +160,7 @@ export const denyBooking = async (
       booking,
     });
   } catch (err) {
-    console.error("Error denying booking:", err);
-    return res.status(500).json({ success: false, message: "Server error" });
+    return handleDatabaseError(err, res);
   }
 };
 
@@ -187,14 +169,23 @@ export const getAllBookingsForOrganizer = async (
   res: Response
 ): Promise<Response | void> => {
   try {
-    const totalBookings = await Booking.countDocuments();
-    const pendingApproval = await Booking.countDocuments({ status: "pending" });
-    const income = await Booking.aggregate([
+    const totalBookingsPromise = Booking.countDocuments();
+    const pendingApprovalPromise = Booking.countDocuments({
+      status: "pending",
+    });
+    const incomePromise = Booking.aggregate([
       { $match: { status: "accepted" } },
       { $group: { _id: null, totalIncome: { $sum: "$totalAmount" } } },
     ]);
+    const bookingsPromise = Booking.find().lean();
 
-    const bookings = await Booking.find().exec();
+    const [totalBookings, pendingApproval, income, bookings] =
+      await Promise.all([
+        totalBookingsPromise,
+        pendingApprovalPromise,
+        incomePromise,
+        bookingsPromise,
+      ]);
 
     return res.status(200).json({
       success: true,
@@ -203,20 +194,10 @@ export const getAllBookingsForOrganizer = async (
         totalBookings,
         pendingApproval,
         income: income[0]?.totalIncome || 0,
-        bookings: bookings.map((booking) => ({
-          id: booking._id,
-          orderId: booking.orderId,
-          dates: booking.dates,
-          numberOfPeople: booking.numberOfPeople,
-          personName: booking.personName,
-          accommodation: booking.accommodation,
-          totalAmount: booking.totalAmount,
-          status: booking.status,
-        })),
+        bookings,
       },
     });
   } catch (err) {
-    console.error("Error retrieving booking data:", err);
-    return res.status(500).json({ success: false, message: "Server error" });
+    return handleDatabaseError(err, res);
   }
 };

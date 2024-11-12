@@ -11,31 +11,31 @@ import { generateResetCode } from "../../utils/types";
 
 dotenv.config();
 
-const ACCESS_TOKEN_SECRET = process.env.ACCESS_TOKEN_SECRET;
-const ADMIN_SECRET_KEY = process.env.ADMIN_SECRET_KEY;
+const { ACCESS_TOKEN_SECRET, ADMIN_SECRET_KEY } = process.env;
 
-if (!ACCESS_TOKEN_SECRET) {
-  throw new Error(
-    "ACCESS_TOKEN_SECRET is not defined in the environment variables"
-  );
+if (!ACCESS_TOKEN_SECRET || !ADMIN_SECRET_KEY) {
+  throw new Error("Environment variables are missing");
 }
 
-if (!ADMIN_SECRET_KEY) {
-  throw new Error(
-    "ADMIN_SECRET_KEY is not defined in the environment variables"
+const handleError = (res: Response, statusCode: number, message: string) => {
+  return res.status(statusCode).json({ success: false, message });
+};
+
+const createJWTToken = (user: IUser) => {
+  const { _id, email, role, name, mobileNumber, city, countryCode } = user;
+  return jwt.sign(
+    { id: _id, email, role, name, mobileNumber, city, countryCode },
+    ACCESS_TOKEN_SECRET as string,
+    { expiresIn: "1h" }
   );
-}
+};
 
 export const registerUser = async (
   req: Request,
   res: Response
-): Promise<Response | void> => {
+): Promise<Response> => {
   const { error } = userValidation(req.body);
-  if (error) {
-    return res
-      .status(400)
-      .json({ success: false, message: error.details[0].message });
-  }
+  if (error) return handleError(res, 400, error.details[0].message);
 
   const {
     name,
@@ -50,24 +50,17 @@ export const registerUser = async (
 
   try {
     const existingUser = await User.findOne({ email });
-    if (existingUser) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Email is already registered" });
+    if (existingUser)
+      return handleError(res, 400, "Email is already registered");
+
+    if (
+      role === "admin" &&
+      req.headers["x-admin-secret"] !== ADMIN_SECRET_KEY
+    ) {
+      return handleError(res, 403, "Invalid admin secret");
     }
 
-    if (role === "admin") {
-      const secretKey = req.headers["x-admin-secret"];
-      if (!secretKey || secretKey !== ADMIN_SECRET_KEY) {
-        return res.status(403).json({
-          success: false,
-          message: "Forbidden: Invalid admin secret key",
-        });
-      }
-    }
-
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
+    const hashedPassword = await bcrypt.hash(password, 10);
 
     const newUser = new User({
       name,
@@ -78,12 +71,13 @@ export const registerUser = async (
       countryCode,
       role: role || "user",
       imageUrl: imageUrl || "",
+      isEmailVerified: false,
     });
 
     await newUser.save();
 
     return res.status(201).json({
-      message: `${role || "user"} registered successfully`,
+      message: `${role || "user"} registered successfully.`,
       user: {
         id: newUser._id,
         name: newUser.name,
@@ -92,45 +86,28 @@ export const registerUser = async (
         city: newUser.city,
         countryCode: newUser.countryCode,
         role: newUser.role,
-        imageUrl: newUser.imageUrl,
       },
     });
   } catch (err) {
     console.error(err);
-    return res.status(500).json({ message: "Server error" });
+    return handleError(res, 500, "Server error");
   }
 };
 
 export const loginUser = async (
   req: Request,
   res: Response
-): Promise<Response | void> => {
+): Promise<Response> => {
   const { email, password } = req.body;
 
   try {
-    const user = await User.findOne({ email });
-    if (!user) {
-      return res.status(400).json({ message: "User not found" });
-    }
+    const user = await User.findOne({ email }).lean<IUser>();
+    if (!user) return handleError(res, 400, "User not found");
 
     const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) {
-      return res.status(400).json({ message: "Incorrect password" });
-    }
+    if (!isMatch) return handleError(res, 400, "Incorrect password");
 
-    const token = jwt.sign(
-      {
-        id: user._id,
-        email: user.email,
-        role: user.role,
-        name: user.name,
-        mobileNumber: user.mobileNumber,
-        city: user.city,
-        countryCode: user.countryCode,
-      },
-      process.env.ACCESS_TOKEN_SECRET as string,
-      { expiresIn: "5h" }
-    );
+    const token = createJWTToken(user);
 
     return res.status(200).json({
       success: true,
@@ -146,38 +123,27 @@ export const loginUser = async (
         role: user.role,
       },
     });
-  } catch (error) {
-    console.error(error);
-    return res.status(500).json({ message: "Server error" });
+  } catch (err) {
+    console.error(err);
+    return handleError(res, 500, "Server error");
   }
 };
 
 export const updateUser = async (
   req: Request,
   res: Response
-): Promise<Response | void> => {
+): Promise<Response> => {
   const { userId } = req.params;
   const updates: Partial<IUser> = req.body;
 
   const { error } = userValidationPartial(updates);
-  if (error) {
-    return res.status(400).json({
-      success: false,
-      message: error.details[0].message,
-    });
-  }
+  if (error) return handleError(res, 400, error.details[0].message);
 
   try {
     const user = await User.findById(userId);
-    if (!user) {
-      return res
-        .status(400)
-        .json({ success: false, message: "User not found" });
-    }
+    if (!user) return handleError(res, 400, "User not found");
 
-    if (updates.imageUrl) {
-      user.imageUrl = updates.imageUrl;
-    }
+    if (updates.imageUrl) user.imageUrl = updates.imageUrl;
 
     const updatedUser = await User.findByIdAndUpdate(userId, updates, {
       new: true,
@@ -187,89 +153,50 @@ export const updateUser = async (
     return res.status(200).json({
       success: true,
       message: "User updated successfully",
-      user: {
-        id: updatedUser?._id,
-        name: updatedUser?.name,
-        email: updatedUser?.email,
-        mobileNumber: updatedUser?.mobileNumber,
-        city: updatedUser?.city,
-        countryCode: updatedUser?.countryCode,
-        role: updatedUser?.role,
-        imageUrl: updatedUser?.imageUrl,
-      },
+      user: updatedUser,
     });
   } catch (err) {
     console.error(err);
-    return res.status(500).json({ success: false, message: "Server error" });
+    return handleError(res, 500, "Server error");
   }
 };
 
 export const getUserById = async (
   req: Request,
   res: Response
-): Promise<Response | void> => {
+): Promise<Response> => {
   const { userId } = req.params;
 
-  if (!userId) {
-    return res.status(400).json({
-      success: false,
-      message: "User ID missing",
-    });
-  }
-
-  if (!mongoose.Types.ObjectId.isValid(userId)) {
-    return res.status(400).json({
-      success: false,
-      message: "Invalid User ID",
-    });
+  if (!userId || !mongoose.Types.ObjectId.isValid(userId)) {
+    return handleError(res, 400, "Invalid User ID");
   }
 
   try {
     const user = await User.findById(userId);
-
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: "User not found",
-      });
-    }
+    if (!user) return handleError(res, 404, "User not found");
 
     return res.status(200).json({
       success: true,
       message: "User found",
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        mobileNumber: user.mobileNumber,
-        city: user.city,
-        countryCode: user.countryCode,
-        role: user.role,
-        imageUrl: user?.imageUrl,
-      },
+      user,
     });
   } catch (err) {
     console.error(err);
-    return res.status(500).json({ success: false, message: "Server error" });
+    return handleError(res, 500, "Server error");
   }
 };
 
 export const forgotPassword = async (
   req: Request,
   res: Response
-): Promise<Response | void> => {
+): Promise<Response> => {
   const { email } = req.body;
 
   try {
     const user = await User.findOne({ email });
-    if (!user) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Email not found" });
-    }
+    if (!user) return handleError(res, 400, "Email not found");
 
     const resetCode = generateResetCode();
-
     const expires = Date.now() + 3600000;
 
     await PasswordReset.updateOne(
@@ -286,35 +213,25 @@ export const forgotPassword = async (
     });
   } catch (err) {
     console.error(err);
-    return res.status(500).json({ success: false, message: "Server error" });
+    return handleError(res, 500, "Server error");
   }
 };
 
 export const verifyResetCode = async (
   req: Request,
   res: Response
-): Promise<Response | void> => {
+): Promise<Response> => {
   const { email, resetCode } = req.body;
 
   try {
     const resetData = await PasswordReset.findOne({ email });
-    if (!resetData) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Reset code not found" });
-    }
+    if (!resetData) return handleError(res, 400, "Reset code not found");
 
-    if (resetCode !== resetData.resetCode) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Invalid reset code" });
-    }
+    if (resetCode !== resetData.resetCode)
+      return handleError(res, 400, "Invalid reset code");
 
-    if (Date.now() > resetData.expires) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Reset code has expired" });
-    }
+    if (Date.now() > resetData.expires)
+      return handleError(res, 400, "Reset code has expired");
 
     return res.status(200).json({
       success: true,
@@ -322,23 +239,19 @@ export const verifyResetCode = async (
     });
   } catch (err) {
     console.error(err);
-    return res.status(500).json({ success: false, message: "Server error" });
+    return handleError(res, 500, "Server error");
   }
 };
 
 export const resetPassword = async (
   req: Request,
   res: Response
-): Promise<Response | void> => {
+): Promise<Response> => {
   const { email, newPassword } = req.body;
 
   try {
     const user = await User.findOne({ email });
-    if (!user) {
-      return res
-        .status(400)
-        .json({ success: false, message: "User not found" });
-    }
+    if (!user) return handleError(res, 400, "User not found");
 
     const hashedPassword = await bcrypt.hash(newPassword, 10);
     user.password = hashedPassword;
@@ -352,6 +265,6 @@ export const resetPassword = async (
     });
   } catch (err) {
     console.error(err);
-    return res.status(500).json({ success: false, message: "Server error" });
+    return handleError(res, 500, "Server error");
   }
 };

@@ -2,22 +2,25 @@ import { Request, Response } from "express";
 import { retreatValidationPartial } from "../../utils/validation";
 import Retreat from "../models/RetreatModal";
 
+// Create Retreat
 export const createRetreat = async (
   req: Request,
   res: Response
-): Promise<Response | void> => {
-  // console.log(req);
+): Promise<Response> => {
+  const userRole = req?.user?.role as "user" | "organiser" | "admin";
 
-  // const userRole = req?.user?.role;
-  // if (!req.user) {
-  //   return res.status(401).json({ message: "Unauthorized: No user found." });
-  // }
-  // if (userRole !== "admin" && userRole !== "organiser") {
-  //   return res.status(403).json({
-  //     success: false,
-  //     message: "Forbidden: You do not have the necessary permissions",
-  //   });
-  // }
+  if (!req.user) {
+    return res.status(401).json({ message: "Unauthorized: No user found." });
+  }
+
+  if (!["admin", "organiser"].includes(userRole)) {
+    return res.status(403).json({
+      success: false,
+      message: "Forbidden: You do not have the necessary permissions",
+    });
+  }
+
+  // Validation
   const { error } = retreatValidationPartial(req.body);
   if (error) {
     return res.status(400).json({
@@ -32,9 +35,9 @@ export const createRetreat = async (
   }
 
   try {
-    const retreatData = req.body;
+    const { title } = req.body;
+    const existingRetreat = await Retreat.findOne({ title }).lean(); // Use lean query
 
-    const existingRetreat = await Retreat.findOne({ title: retreatData.title });
     if (existingRetreat) {
       return res.status(400).json({
         success: false,
@@ -42,21 +45,13 @@ export const createRetreat = async (
       });
     }
 
-    const newRetreat = new Retreat({
-      ...retreatData,
-    });
+    const newRetreat = new Retreat(req.body);
     await newRetreat.save();
-
-    const formattedData = {
-      ...newRetreat.toObject(),
-      category: newRetreat.category?.map(({ id, name }) => ({ id, name })),
-      popular: newRetreat.popular?.map(({ id, name }) => ({ id, name })),
-    };
 
     return res.status(201).json({
       success: true,
       message: "Retreat created successfully",
-      data: formattedData,
+      data: newRetreat.toObject(),
     });
   } catch (err) {
     console.error(err);
@@ -64,21 +59,25 @@ export const createRetreat = async (
   }
 };
 
+// Update Retreat
 export const updateRetreat = async (
   req: Request,
   res: Response
-): Promise<Response | void> => {
-  // const userRole = req?.user?.role;
-  // if (!req.user) {
-  //   return res.status(401).json({ message: "Unauthorized: No user found." });
-  // }
-  // if (userRole !== "admin" && userRole !== "organiser") {
-  //   return res.status(403).json({
-  //     success: false,
-  //     message: "Forbidden: You do not have the necessary permissions",
-  //   });
-  // }
+): Promise<Response> => {
+  const userRole = req?.user?.role as "user" | "organiser" | "admin";
 
+  if (!req.user) {
+    return res.status(401).json({ message: "Unauthorized: No user found." });
+  }
+
+  if (!["admin", "organiser"].includes(userRole)) {
+    return res.status(403).json({
+      success: false,
+      message: "Forbidden: You do not have the necessary permissions",
+    });
+  }
+
+  // Validation
   const { error } = retreatValidationPartial(req.body);
   if (error) {
     return res.status(400).json({
@@ -94,9 +93,7 @@ export const updateRetreat = async (
 
   try {
     const { id } = req.params;
-    const retreatData = req.body;
-
-    const retreat = await Retreat.findById(id);
+    const retreat = await Retreat.findById(id).lean();
 
     if (!retreat) {
       return res.status(404).json({
@@ -105,14 +102,11 @@ export const updateRetreat = async (
       });
     }
 
-    Object.assign(retreat, retreatData);
-
-    await retreat.save();
-
+    await Retreat.findByIdAndUpdate(id, req.body, { new: true });
     return res.status(200).json({
       success: true,
       message: "Retreat updated successfully",
-      data: retreat,
+      data: { ...retreat, ...req.body },
     });
   } catch (err) {
     console.error(err);
@@ -120,23 +114,24 @@ export const updateRetreat = async (
   }
 };
 
+// Delete Retreat
 export const deleteRetreat = async (
   req: Request,
   res: Response
-): Promise<Response | void> => {
-  // const userRole = req?.user?.role;
-  // if (userRole !== "admin") {
-  //   return res.status(403).json({
-  //     success: false,
-  //     message: "Forbidden: You do not have the necessary permissions",
-  //   });
-  // }
+): Promise<Response> => {
+  const userRole = req?.user?.role;
+
+  if (userRole !== "admin") {
+    return res.status(403).json({
+      success: false,
+      message: "Forbidden: You do not have the necessary permissions",
+    });
+  }
 
   const { id } = req.params;
 
   try {
     const deletedRetreat = await Retreat.findByIdAndDelete(id);
-
     if (!deletedRetreat) {
       return res.status(404).json({
         success: false,
@@ -154,10 +149,11 @@ export const deleteRetreat = async (
   }
 };
 
+// Get All Retreats with Pagination
 export const getAllRetreats = async (
   req: Request,
   res: Response
-): Promise<Response | void> => {
+): Promise<Response> => {
   const { lastId, limit = 10 } = req.query;
 
   try {
@@ -166,7 +162,11 @@ export const getAllRetreats = async (
       query = { _id: { $gt: lastId } };
     }
 
-    const retreats = await Retreat.find(query).limit(+limit).sort({ _id: 1 });
+    // Use lean query for faster performance
+    const retreats = await Retreat.find(query)
+      .limit(+limit)
+      .sort({ _id: 1 })
+      .lean();
 
     const totalRetreats = await Retreat.countDocuments();
     const totalPages = Math.ceil(totalRetreats / +limit);
@@ -193,11 +193,11 @@ export const getAllRetreats = async (
 export const getRetreatById = async (
   req: Request,
   res: Response
-): Promise<Response | void> => {
+): Promise<Response> => {
   const { id } = req.params;
 
   try {
-    const retreat = await Retreat.findById(id);
+    const retreat = await Retreat.findById(id).lean();
 
     if (!retreat) {
       return res.status(404).json({
