@@ -1,11 +1,9 @@
-// src/types.d.ts
-
-import { IUser } from "../models/User"; // Adjust the import path based on where your IUser model is
+import { IUser } from "./models/User";
 
 declare global {
   namespace Express {
     interface Request {
-      user?: IUser;
+      user?: Partial<IUser>;
     }
   }
 }

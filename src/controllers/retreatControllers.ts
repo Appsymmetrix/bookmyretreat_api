@@ -6,16 +6,18 @@ export const createRetreat = async (
   req: Request,
   res: Response
 ): Promise<Response | void> => {
-  const { ADMIN_SECRET_KEY } = process.env;
+  // console.log(req);
 
-  const secretKey = req.headers["x-admin-secret"];
-  if (!secretKey || secretKey !== ADMIN_SECRET_KEY) {
-    return res.status(403).json({
-      success: false,
-      message: "Forbidden: Invalid admin secret key",
-    });
-  }
-
+  // const userRole = req?.user?.role;
+  // if (!req.user) {
+  //   return res.status(401).json({ message: "Unauthorized: No user found." });
+  // }
+  // if (userRole !== "admin" && userRole !== "organiser") {
+  //   return res.status(403).json({
+  //     success: false,
+  //     message: "Forbidden: You do not have the necessary permissions",
+  //   });
+  // }
   const { error } = retreatValidationPartial(req.body);
   if (error) {
     return res.status(400).json({

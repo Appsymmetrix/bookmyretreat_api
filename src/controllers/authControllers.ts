@@ -12,10 +12,17 @@ import { generateResetCode } from "../../utils/types";
 dotenv.config();
 
 const ACCESS_TOKEN_SECRET = process.env.ACCESS_TOKEN_SECRET;
+const ADMIN_SECRET_KEY = process.env.ADMIN_SECRET_KEY;
 
 if (!ACCESS_TOKEN_SECRET) {
   throw new Error(
     "ACCESS_TOKEN_SECRET is not defined in the environment variables"
+  );
+}
+
+if (!ADMIN_SECRET_KEY) {
+  throw new Error(
+    "ADMIN_SECRET_KEY is not defined in the environment variables"
   );
 }
 
@@ -49,6 +56,16 @@ export const registerUser = async (
         .json({ success: false, message: "Email is already registered" });
     }
 
+    if (role === "admin") {
+      const secretKey = req.headers["x-admin-secret"];
+      if (!secretKey || secretKey !== ADMIN_SECRET_KEY) {
+        return res.status(403).json({
+          success: false,
+          message: "Forbidden: Invalid admin secret key",
+        });
+      }
+    }
+
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
@@ -60,7 +77,7 @@ export const registerUser = async (
       city,
       countryCode,
       role: role || "user",
-      imageUrl: imageUrl || "", // Store imageUrl if provided
+      imageUrl: imageUrl || "",
     });
 
     await newUser.save();
@@ -75,7 +92,7 @@ export const registerUser = async (
         city: newUser.city,
         countryCode: newUser.countryCode,
         role: newUser.role,
-        imageUrl: newUser.imageUrl, // Include imageUrl in response
+        imageUrl: newUser.imageUrl,
       },
     });
   } catch (err) {
@@ -112,7 +129,7 @@ export const loginUser = async (
         countryCode: user.countryCode,
       },
       process.env.ACCESS_TOKEN_SECRET as string,
-      { expiresIn: "1h" }
+      { expiresIn: "5h" }
     );
 
     return res.status(200).json({
@@ -178,7 +195,7 @@ export const updateUser = async (
         city: updatedUser?.city,
         countryCode: updatedUser?.countryCode,
         role: updatedUser?.role,
-        imageUrl: updatedUser?.imageUrl, // Include the imageUrl in the response
+        imageUrl: updatedUser?.imageUrl,
       },
     });
   } catch (err) {
