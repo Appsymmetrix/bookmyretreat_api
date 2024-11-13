@@ -2,16 +2,8 @@ import express from "express";
 import dotenv from "dotenv";
 import cors from "cors";
 import { connectDb } from "./config/dbConnection";
-import authRoutes from "./routes/authRoutes";
-import retreatRoutes from "./routes/retreatRoutes";
-import categoryRoutes from "./routes/categoryRoutes";
-import reviewRoutes from "./routes/reviewRoutes";
-import wishlistRoutes from "./routes/wishlistRoutes";
-import bookingRoutes from "./routes/bookingRoutes";
 import { errorHandler } from "./middleware/errorHandler";
-import subscriptionRoutes from "./routes/subscriptionRoutes";
-import notificationRoutes from "./routes/notificationRoutes";
-import uploadRoutes from "./routes/uploadRoutes";
+import router from "./routes";
 
 dotenv.config();
 
@@ -26,15 +18,7 @@ app.use(errorHandler);
 
 app.use(express.urlencoded({ extended: true }));
 
-app.use("/api/auth", authRoutes);
-app.use("/api/category", categoryRoutes);
-app.use("/api/retreats", retreatRoutes);
-app.use("/api/wishlists", wishlistRoutes);
-app.use("/api/notification", notificationRoutes);
-app.use("/api/review", reviewRoutes);
-app.use("/api/booking", bookingRoutes);
-app.use("/api/subscribtion", subscriptionRoutes);
-app.use("/api/upload", uploadRoutes);
+app.use("/api", router);
 
 const startServer = async () => {
   try {
