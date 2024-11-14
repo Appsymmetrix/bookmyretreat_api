@@ -3,7 +3,14 @@ import Joi from "joi";
 export const userValidation = (data: any) => {
   const schema = Joi.object({
     name: Joi.string().min(3).max(30).required(),
-    email: Joi.string().email().required(),
+    email: Joi.string()
+      .email({ tlds: { allow: ["com", "org", "net"] } })
+      .regex(/^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,4}$/)
+      .required()
+      .messages({
+        "string.email": "Please provide a valid email address.",
+        "string.pattern.base": "Email format is invalid. Please check again.",
+      }),
     password: Joi.string().min(6).required(),
     confirmPassword: Joi.string()
       .min(6)

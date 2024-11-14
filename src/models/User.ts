@@ -1,12 +1,10 @@
 import mongoose, { Schema, Document } from "mongoose";
 
-// Notification interface
 export interface INotification {
   title: string;
   message: string;
 }
 
-// User interface with iat and exp properties added
 export interface IUser extends Document {
   name: string;
   email: string;
@@ -21,6 +19,9 @@ export interface IUser extends Document {
   iat?: number;
   exp?: number;
   isEmailVerified: boolean;
+  verificationCode?: string;
+  verificationCodeExpires?: Date;
+  isNewUser: boolean;
 }
 
 const NotificationSchema: Schema = new Schema({
@@ -48,6 +49,9 @@ const UserSchema: Schema = new Schema(
     iat: { type: Number, required: false },
     exp: { type: Number, required: false },
     isEmailVerified: { type: Boolean, default: false },
+    verificationCode: { type: String },
+    verificationCodeExpires: { type: Date }, // Expiration time for the verification code
+    isNewUser: { type: Boolean, default: false },
   },
   { timestamps: true }
 );

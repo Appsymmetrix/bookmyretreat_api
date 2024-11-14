@@ -5,7 +5,7 @@ import dotenv from "dotenv";
 import { userValidation, userValidationPartial } from "../../utils/validation";
 import jwt from "jsonwebtoken";
 import mongoose from "mongoose";
-import { sendResetEmail } from "../../utils/store";
+import { sendResetEmail, sendVerificationEmail } from "../../utils/store";
 import PasswordReset from "../models/ResetModal";
 import { generateResetCode } from "../../utils/types";
 
@@ -61,6 +61,8 @@ export const registerUser = async (
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
+    const verificationCode = generateResetCode();
+    const verificationCodeExpires = new Date(Date.now() + 60000);
 
     const newUser = new User({
       name,
@@ -72,12 +74,18 @@ export const registerUser = async (
       role: role || "user",
       imageUrl: imageUrl || "",
       isEmailVerified: false,
+      verificationCode,
+      verificationCodeExpires,
+      isNewUser: true,
     });
 
     await newUser.save();
+    await sendVerificationEmail(email, verificationCode);
 
     return res.status(201).json({
-      message: `${role || "user"} registered successfully.`,
+      message: `${
+        role || "User"
+      } registered successfully. Check your email to verify your account.`,
       user: {
         id: newUser._id,
         name: newUser.name,
@@ -86,6 +94,7 @@ export const registerUser = async (
         city: newUser.city,
         countryCode: newUser.countryCode,
         role: newUser.role,
+        isNewUser: newUser.isNewUser,
       },
     });
   } catch (err) {
@@ -101,11 +110,16 @@ export const loginUser = async (
   const { email, password } = req.body;
 
   try {
-    const user = await User.findOne({ email }).lean<IUser>();
+    const user = await User.findOne({ email });
     if (!user) return handleError(res, 400, "User not found");
 
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) return handleError(res, 400, "Incorrect password");
+
+    if (user.isNewUser) {
+      user.isNewUser = false;
+      await user.save();
+    }
 
     const token = createJWTToken(user);
 
@@ -121,6 +135,7 @@ export const loginUser = async (
         city: user.city,
         countryCode: user.countryCode,
         role: user.role,
+        isNewUser: user.isNewUser,
       },
     });
   } catch (err) {
@@ -262,6 +277,112 @@ export const resetPassword = async (
     return res.status(200).json({
       success: true,
       message: "Password reset successful",
+    });
+  } catch (err) {
+    console.error(err);
+    return handleError(res, 500, "Server error");
+  }
+};
+
+export const verifyEmail = async (
+  req: Request,
+  res: Response
+): Promise<Response> => {
+  const { email, verificationCode } = req.body;
+
+  try {
+    const user = await User.findOne({ email });
+    if (!user) return handleError(res, 400, "User not found");
+
+    if (user.isEmailVerified) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Email already verified" });
+    }
+
+    if (user.verificationCode !== verificationCode) {
+      return handleError(res, 400, "Invalid verification code");
+    }
+
+    if (
+      !user.verificationCodeExpires ||
+      Date.now() > user.verificationCodeExpires.getTime()
+    ) {
+      return handleError(res, 400, "Verification code has expired");
+    }
+
+    user.isEmailVerified = true;
+    user.verificationCode = undefined;
+    user.verificationCodeExpires = undefined;
+    await user.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "Email verified successfully",
+    });
+  } catch (err) {
+    console.error(err);
+    return handleError(res, 500, "Server error");
+  }
+};
+
+export const resendVerificationEmail = async (
+  req: Request,
+  res: Response
+): Promise<Response> => {
+  const { email } = req.body;
+
+  try {
+    const user = await User.findOne({ email });
+    if (!user) return handleError(res, 400, "User not found");
+
+    if (user.isEmailVerified) {
+      return handleError(res, 400, "Email is already verified");
+    }
+
+    const verificationCode = generateResetCode();
+    const verificationCodeExpires = new Date(Date.now() + 60000); // 1 minute expiration
+
+    user.verificationCode = verificationCode;
+    user.verificationCodeExpires = verificationCodeExpires;
+    await user.save();
+
+    await sendVerificationEmail(email, verificationCode);
+
+    return res.status(200).json({
+      success: true,
+      message: "Verification email sent. Please check your inbox.",
+    });
+  } catch (err) {
+    console.error(err);
+    return handleError(res, 500, "Server error");
+  }
+};
+
+export const resendPasswordResetEmail = async (
+  req: Request,
+  res: Response
+): Promise<Response> => {
+  const { email } = req.body;
+
+  try {
+    const user = await User.findOne({ email });
+    if (!user) return handleError(res, 400, "User not found");
+
+    const resetCode = generateResetCode();
+    const expires = Date.now() + 3600000;
+
+    await PasswordReset.updateOne(
+      { email },
+      { email, resetCode, expires },
+      { upsert: true }
+    );
+
+    await sendResetEmail(email, resetCode);
+
+    return res.status(200).json({
+      success: true,
+      message: "Password reset code sent to your email.",
     });
   } catch (err) {
     console.error(err);

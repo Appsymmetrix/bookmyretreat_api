@@ -46,3 +46,34 @@ export const sendResetEmail = async (
     throw new Error("Failed to send reset email");
   }
 };
+
+export const sendVerificationEmail = async (
+  email: string,
+  resetCode: string
+): Promise<void> => {
+  const params = {
+    Source: process.env.EMAIL_USER!,
+    Destination: {
+      ToAddresses: [email],
+    },
+    Message: {
+      Subject: {
+        Data: "Email verifing code",
+      },
+      Body: {
+        Text: {
+          Data: `Your e-mail verifying code is: ${resetCode}`,
+        },
+      },
+    },
+  };
+
+  try {
+    const command = new SendEmailCommand(params);
+    const data = await sesClient.send(command);
+    console.log("Email sent:", data);
+  } catch (err) {
+    console.error("Error sending email:", err);
+    throw new Error("Failed to send reset email");
+  }
+};
