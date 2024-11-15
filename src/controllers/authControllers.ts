@@ -2,7 +2,11 @@ import { Request, Response } from "express";
 import bcrypt from "bcryptjs";
 import User, { IUser } from "../models/User";
 import dotenv from "dotenv";
-import { userValidation, userValidationPartial } from "../../utils/validation";
+import {
+  organizerValidation,
+  userValidation,
+  userValidationPartial,
+} from "../../utils/validation";
 import jwt from "jsonwebtoken";
 import mongoose from "mongoose";
 import { sendResetEmail, sendVerificationEmail } from "../../utils/store";
@@ -34,7 +38,12 @@ export const registerUser = async (
   req: Request,
   res: Response
 ): Promise<Response> => {
-  const { error } = userValidation(req.body);
+  const { role } = req.body;
+
+  const { error } =
+    role === "organiser"
+      ? organizerValidation(req.body)
+      : userValidation(req.body);
   if (error) return handleError(res, 400, error.details[0].message);
 
   const {
@@ -44,15 +53,18 @@ export const registerUser = async (
     mobileNumber,
     city,
     countryCode,
-    role,
     imageUrl,
+    organizationName,
+    description,
   } = req.body;
 
   try {
+    // Check if the email already exists
     const existingUser = await User.findOne({ email });
     if (existingUser)
       return handleError(res, 400, "Email is already registered");
 
+    // Admin-specific check using the x-admin-secret header
     if (
       role === "admin" &&
       req.headers["x-admin-secret"] !== ADMIN_SECRET_KEY
@@ -60,42 +72,58 @@ export const registerUser = async (
       return handleError(res, 403, "Invalid admin secret");
     }
 
+    // Hash the password before saving
     const hashedPassword = await bcrypt.hash(password, 10);
     const verificationCode = generateResetCode();
-    const verificationCodeExpires = new Date(Date.now() + 60000);
+    const verificationCodeExpires = new Date(Date.now() + 60000); // 1 minute expiry for verification code
 
+    // Create a new user document
     const newUser = new User({
-      name,
+      name: role === "user" ? name : undefined, // name is required only for user and organiser
       email,
       password: hashedPassword,
       mobileNumber,
-      city,
-      countryCode,
-      role: role || "user",
+      city: role === "user" ? city : undefined, // city and countryCode are required only for users
+      countryCode: role === "user" ? countryCode : undefined,
+      role: role || "user", // Default to "user" if no role is provided
       imageUrl: imageUrl || "",
       isEmailVerified: false,
       verificationCode,
       verificationCodeExpires,
-      isNewUser: true,
+      isNewUser: true, // Assume user is new
+      organization:
+        role === "organiser"
+          ? { name: organizationName, description, imageUrl }
+          : undefined,
     });
 
     await newUser.save();
     await sendVerificationEmail(email, verificationCode);
 
+    // Prepare response data, customizing based on role
+    const responseUser: any = {
+      id: newUser._id,
+      email: newUser.email,
+      mobileNumber: newUser.mobileNumber,
+      role: newUser.role,
+      isNewUser: newUser.isNewUser,
+      ...(newUser.role === "user" && {
+        name: newUser.name,
+        city: newUser.city,
+        countryCode: newUser.countryCode,
+      }),
+      ...(newUser.role === "organiser" && {
+        organizationName: newUser.organization?.name,
+        description: newUser.organization?.description,
+        imageUrl: newUser.organization?.imageUrl,
+      }),
+    };
+
     return res.status(201).json({
       message: `${
         role || "User"
       } registered successfully. Check your email to verify your account.`,
-      user: {
-        id: newUser._id,
-        name: newUser.name,
-        email: newUser.email,
-        mobileNumber: newUser.mobileNumber,
-        city: newUser.city,
-        countryCode: newUser.countryCode,
-        role: newUser.role,
-        isNewUser: newUser.isNewUser,
-      },
+      user: responseUser,
     });
   } catch (err) {
     console.error(err);
@@ -110,17 +138,21 @@ export const loginUser = async (
   const { email, password } = req.body;
 
   try {
+    // Find the user by email
     const user = await User.findOne({ email });
     if (!user) return handleError(res, 400, "User not found");
 
+    // Compare the entered password with the hashed one
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) return handleError(res, 400, "Incorrect password");
 
+    // Mark the user as no longer "new" if they are logging in for the first time
     if (user.isNewUser) {
       user.isNewUser = false;
       await user.save();
     }
 
+    // Create JWT token
     const token = createJWTToken(user);
 
     return res.status(200).json({
@@ -129,13 +161,20 @@ export const loginUser = async (
       token,
       user: {
         id: user._id,
-        name: user.name,
         email: user.email,
         mobileNumber: user.mobileNumber,
-        city: user.city,
-        countryCode: user.countryCode,
         role: user.role,
         isNewUser: user.isNewUser,
+        ...(user.role === "user" && {
+          name: user.name,
+          city: user.city,
+          countryCode: user.countryCode,
+        }),
+        ...(user.role === "organiser" && {
+          organizationName: user.organization?.name,
+          description: user.organization?.description,
+          imageUrl: user.organization?.imageUrl,
+        }),
       },
     });
   } catch (err) {
@@ -157,8 +196,6 @@ export const updateUser = async (
   try {
     const user = await User.findById(userId);
     if (!user) return handleError(res, 400, "User not found");
-
-    if (updates.imageUrl) user.imageUrl = updates.imageUrl;
 
     const updatedUser = await User.findByIdAndUpdate(userId, updates, {
       new: true,

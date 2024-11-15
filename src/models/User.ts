@@ -13,15 +13,19 @@ export interface IUser extends Document {
   mobileNumber: string;
   city: string;
   countryCode: string;
-  role: "user" | "organiser" | "admin" | undefined;
+  role: "user" | "organiser" | "admin";
   notifications: INotification[];
-  imageUrl?: string;
   iat?: number;
   exp?: number;
   isEmailVerified: boolean;
   verificationCode?: string;
   verificationCodeExpires?: Date;
   isNewUser: boolean;
+  organization?: {
+    name: string;
+    description?: string;
+    imageUrl?: string;
+  };
 }
 
 const NotificationSchema: Schema = new Schema({
@@ -31,27 +35,70 @@ const NotificationSchema: Schema = new Schema({
 
 const UserSchema: Schema = new Schema(
   {
-    name: { type: String, required: true, trim: true },
-    email: { type: String, required: true, unique: true, lowercase: true },
-    password: { type: String, required: true, minlength: 6 },
+    name: {
+      type: String,
+      required: function (this: IUser) {
+        return this.role === "user";
+      },
+      trim: true,
+    },
+    email: {
+      type: String,
+      required: true,
+      unique: true,
+      lowercase: true,
+    },
+    password: {
+      type: String,
+      required: true,
+      minlength: 6,
+    },
     createdAt: { type: Date, default: Date.now },
-    mobileNumber: { type: String, required: true },
-    city: { type: String, required: true },
-    countryCode: { type: String, required: true },
+    mobileNumber: {
+      type: String,
+      required: true,
+    },
+    city: {
+      type: String,
+      required: function (this: IUser) {
+        return this.role === "user";
+      },
+    },
+    countryCode: {
+      type: String,
+      required: function (this: IUser) {
+        return this.role === "user";
+      },
+    },
     role: {
       type: String,
       required: true,
       enum: ["user", "organiser", "admin"],
       default: "user",
     },
-    notifications: { type: [NotificationSchema], default: [] },
-    imageUrl: { type: String, default: "" },
-    iat: { type: Number, required: false },
-    exp: { type: Number, required: false },
+    notifications: {
+      type: [NotificationSchema],
+      default: [],
+      required: function (this: IUser) {
+        return this.role === "user";
+      },
+    },
+    iat: { type: Number },
+    exp: { type: Number },
     isEmailVerified: { type: Boolean, default: false },
     verificationCode: { type: String },
-    verificationCodeExpires: { type: Date }, // Expiration time for the verification code
+    verificationCodeExpires: { type: Date },
     isNewUser: { type: Boolean, default: false },
+    organization: {
+      type: new Schema({
+        name: { type: String, required: true },
+        description: { type: String, default: "" },
+        imageUrl: { type: String, default: "" },
+      }),
+      required: function (this: IUser) {
+        return this.role === "organiser";
+      },
+    },
   },
   { timestamps: true }
 );
