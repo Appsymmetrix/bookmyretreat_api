@@ -3,16 +3,16 @@
     "module": "CommonJS",
     "target": "ES6",
     "outDir": "./dist",
-    "rootDir": "./",
+    // "rootDir": "./src",
     "esModuleInterop": true,
     "moduleResolution": "node",
     "strict": true,
     "resolveJsonModule": true,
     "skipLibCheck": true,
     "allowSyntheticDefaultImports": true,
-    "typeRoots": ["node_modules/@types", "src/types"], // Ensure src/types is included
-    "types": ["node", "express"] // Make sure 'express' is included in types
+    "typeRoots": ["node_modules/@types", "src/types"],
+    "types": ["node", "express"]
   },
-  "include": ["src/**/*.ts", "src/types.d.ts", "utils/**/*"], // Include types file
+  "include": ["src/**/*"],
   "exclude": ["node_modules"]
 }
