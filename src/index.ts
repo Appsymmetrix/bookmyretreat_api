@@ -20,6 +20,11 @@ app.use(express.urlencoded({ extended: true }));
 
 app.use("/api", router);
 
+app.get("/", (req, res) => {
+  res.set("Cache-Control", "no-store");
+  res.status(200).send("<h3>Server is up and running!</h3>");
+});
+
 const startServer = async () => {
   try {
     await connectDb();
