@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
-import { retreatValidationPartial } from "../../utils/validation";
 import Retreat from "../models/RetreatModal";
+import { retreatSchema } from "../../utils/validation";
 
 // Create Retreat
 export const createRetreat = async (
@@ -20,8 +20,7 @@ export const createRetreat = async (
     });
   }
 
-  // Validation
-  const { error } = retreatValidationPartial(req.body);
+  const { error } = retreatSchema.validate(req.body);
   if (error) {
     return res.status(400).json({
       success: false,
@@ -36,7 +35,7 @@ export const createRetreat = async (
 
   try {
     const { title } = req.body;
-    const existingRetreat = await Retreat.findOne({ title }).lean(); // Use lean query
+    const existingRetreat = await Retreat.findOne({ title }).lean();
 
     if (existingRetreat) {
       return res.status(400).json({
@@ -77,8 +76,7 @@ export const updateRetreat = async (
     });
   }
 
-  // Validation
-  const { error } = retreatValidationPartial(req.body);
+  const { error } = retreatSchema.validate(req.body);
   if (error) {
     return res.status(400).json({
       success: false,
@@ -149,7 +147,6 @@ export const deleteRetreat = async (
   }
 };
 
-// Get All Retreats with Pagination
 export const getAllRetreats = async (
   req: Request,
   res: Response

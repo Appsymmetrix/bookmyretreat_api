@@ -7,13 +7,25 @@ import {
   forgotPassword,
   resetPassword,
   verifyResetCode,
+  verifyEmail,
+  resendVerificationEmail,
+  resendPasswordResetEmail,
 } from "../controllers/authControllers";
 import asyncHandler from "../../utils/asyncHandler";
 
 const router = express.Router();
 
 router.post("/register", asyncHandler(registerUser));
+router.post("/verify-email", asyncHandler(verifyEmail));
 router.post("/login", asyncHandler(loginUser));
+router.post(
+  "/resend-verification-email",
+  asyncHandler(resendVerificationEmail)
+);
+router.post(
+  "/resend-password-reset-email",
+  asyncHandler(resendPasswordResetEmail)
+);
 
 router.put("/update/:userId", asyncHandler(updateUser));
 router.get("/my-profile/:userId", asyncHandler(getUserById));

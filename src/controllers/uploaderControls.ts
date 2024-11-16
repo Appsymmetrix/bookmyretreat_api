@@ -101,7 +101,7 @@ const deleteImage = async (req: Request, res: Response): Promise<void> => {
   const key = url.split("/").pop();
 
   const deleteParams: AWS.S3.DeleteObjectRequest = {
-    Bucket: "retreat",
+    Bucket: "bookmyretreat-v1",
     Key: key as string,
   };
 

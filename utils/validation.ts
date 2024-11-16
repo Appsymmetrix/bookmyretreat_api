@@ -3,7 +3,14 @@ import Joi from "joi";
 export const userValidation = (data: any) => {
   const schema = Joi.object({
     name: Joi.string().min(3).max(30).required(),
-    email: Joi.string().email().required(),
+    email: Joi.string()
+      .email({ tlds: { allow: ["com", "org", "net"] } })
+      .regex(/^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,4}$/)
+      .required()
+      .messages({
+        "string.email": "Please provide a valid email address.",
+        "string.pattern.base": "Email format is invalid. Please check again.",
+      }),
     password: Joi.string().min(6).required(),
     confirmPassword: Joi.string()
       .min(6)
@@ -17,7 +24,6 @@ export const userValidation = (data: any) => {
     city: Joi.string().required(),
     countryCode: Joi.string().required(),
     role: Joi.string().valid("user", "admin", "organiser").optional(),
-    imageUrl: Joi.string().uri().optional(),
     isEmailVerified: Joi.boolean().optional(),
   });
 
@@ -52,58 +58,74 @@ export const userValidationPartial = (data: any) => {
   return schema.validate(data);
 };
 
-export const retreatValidationPartial = (data: any) => {
-  const locationSchema = Joi.object({
+export const retreatSchema = Joi.object({
+  title: Joi.string().required(),
+  description: Joi.string().required(),
+  price: Joi.number().required(),
+  organizerName: Joi.string().required(),
+  organizerContact: Joi.string().required(),
+  retreatMonths: Joi.string().required(),
+  daysOfRetreat: Joi.string().required(),
+  rooms: Joi.array()
+    .items(
+      Joi.object({
+        type: Joi.string().required(),
+        numberOfRooms: Joi.number().required(),
+        peopleAllowed: Joi.number().required(),
+        roomPrice: Joi.number().required(),
+      })
+    )
+    .required(),
+  teachers: Joi.array().items(
+    Joi.object({
+      name: Joi.string().required(),
+      description: Joi.string().required(),
+      image: Joi.string(),
+    })
+  ),
+  city: Joi.string().required(),
+  state: Joi.string().required(),
+  country: Joi.string().required(),
+  fullAddress: Joi.string().required(),
+  googleMapUrl: Joi.string(),
+  geoLocation: Joi.object({
+    type: Joi.string().valid("Point").required(),
+    coordinates: Joi.array().items(Joi.number()).length(2).required(),
+  }).required(),
+  imageUrls: Joi.array().items(Joi.string().uri()).required(),
+  isVerified: Joi.boolean().optional(),
+  locations: Joi.object({
     name: Joi.string().required(),
-    description: Joi.string().optional(),
+    description: Joi.string(),
     coordinates: Joi.object({
       lat: Joi.number().required(),
       lng: Joi.number().required(),
     }).required(),
-  });
-
-  const schema = Joi.object({
-    title: Joi.string().min(3).max(100).required(),
-    description: Joi.string().min(5).required(),
-    price: Joi.number().positive().required(),
-    locations: locationSchema.required(),
-    features: Joi.string().required(),
-    benefits: Joi.string().required(),
-    programs: Joi.string().required(),
-    includedInPackage: Joi.string().required(),
-    includedInPrice: Joi.string().required(),
-    availability: Joi.object({
-      startDate: Joi.date().required(),
-      endDate: Joi.date().required(),
-    }).required(),
-    imageUrls: Joi.array().items(Joi.string().uri()).required(),
-    category: Joi.array()
-      .items(
-        Joi.object({
-          id: Joi.string()
-            .regex(/^[0-9a-fA-F]{24}$/)
-            .required(),
-          name: Joi.string().required(),
-        })
-      )
-      .optional(),
-
-    popular: Joi.array()
-      .items(
-        Joi.object({
-          id: Joi.string()
-            .regex(/^[0-9a-fA-F]{24}$/)
-            .required(),
-          name: Joi.string().required(),
-        })
-      )
-      .optional(),
-
-    isShortlist: Joi.boolean(),
-  });
-
-  return schema.validate(data, { abortEarly: false });
-};
+  }),
+  features: Joi.string().required(),
+  benefits: Joi.string().required(),
+  programs: Joi.string().required(),
+  customSection: Joi.string().required(),
+  includedInPackage: Joi.string().required(),
+  includedInPrice: Joi.string().required(),
+  availability: Joi.object({
+    startDate: Joi.date().required(),
+    endDate: Joi.date().required(),
+  }).required(),
+  category: Joi.array().items(
+    Joi.object({
+      id: Joi.string().required(),
+      name: Joi.string().required(),
+    })
+  ),
+  popular: Joi.array().items(
+    Joi.object({
+      id: Joi.string().required(),
+      name: Joi.string().required(),
+    })
+  ),
+  isWishlisted: Joi.boolean().optional(),
+});
 
 export const categorySchema = Joi.object({
   name: Joi.string().min(3).max(50).required().messages({
@@ -158,3 +180,51 @@ export const subscriptionValidator = Joi.object({
     "any.required": "Email is required.",
   }),
 });
+
+export const organizerValidation = (data: any) => {
+  const schema = Joi.object({
+    role: Joi.string().valid("organiser").required().messages({
+      "any.only": "Role must be 'organiser'",
+      "any.required": "Role is required",
+    }),
+
+    organizationName: Joi.string().min(3).max(100).required().messages({
+      "string.empty": "Organization name is required",
+      "string.min": "Organization name must be at least 3 characters",
+      "string.max": "Organization name must be less than 100 characters",
+    }),
+
+    email: Joi.string().email().required().messages({
+      "string.empty": "Email is required",
+      "string.email": "Please provide a valid email address",
+    }),
+
+    mobileNumber: Joi.string()
+      .pattern(/^[0-9]{10,15}$/)
+      .required()
+      .messages({
+        "string.empty": "Mobile number is required",
+        "string.pattern.base": "Mobile number must be between 10 and 15 digits",
+      }),
+
+    password: Joi.string().min(8).required().messages({
+      "string.empty": "Password is required",
+      "string.min": "Password must be at least 8 characters",
+    }),
+
+    confirmPassword: Joi.any().valid(Joi.ref("password")).required().messages({
+      "any.only": "Confirm password must match the password",
+      "any.required": "Confirm password is required",
+    }),
+
+    description: Joi.string().max(500).optional().allow("").messages({
+      "string.max": "Description must be less than 500 characters",
+    }),
+
+    imageUrl: Joi.string().uri().optional().allow("").messages({
+      "string.uri": "Image URL must be a valid URI",
+    }),
+  });
+
+  return schema.validate(data, { abortEarly: false });
+};
