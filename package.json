@@ -6,7 +6,7 @@
     "build": "tsc",
     "dev": "nodemon --watch src -e ts --exec \"ts-node src/index.ts\"",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node --gc-interval=100 dist/index.js"
+    "start": "ls -l node --gc-interval=100 dist/index.js"
   },
   "keywords": [],
   "author": "",
