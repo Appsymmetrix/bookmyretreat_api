@@ -100,7 +100,6 @@ export const registerUser = async (
     await newUser.save();
     await sendVerificationEmail(email, verificationCode);
 
-    // Prepare response data, customizing based on role
     const responseUser: any = {
       id: newUser._id,
       email: newUser.email,

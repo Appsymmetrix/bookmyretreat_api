@@ -1,14 +1,5 @@
 import mongoose, { Document, Schema, ObjectId } from "mongoose";
 
-interface ILocation {
-  name: string;
-  description?: string;
-  coordinates: {
-    lat: number;
-    lng: number;
-  };
-}
-
 interface IRoom {
   type: string;
   numberOfRooms: number;
@@ -35,8 +26,6 @@ interface IRetreat extends Document {
     coordinates: [number, number];
   };
   imageUrls: string[];
-  isVerified: boolean;
-  locations: ILocation;
   features: string;
   customSection: string;
   benefits: string;
@@ -52,16 +41,8 @@ interface IRetreat extends Document {
   isWishlisted: boolean;
   createdAt?: Date;
   updatedAt?: Date;
+  isApproved: boolean;
 }
-
-const LocationSchema: Schema = new Schema({
-  name: { type: String, required: true },
-  description: { type: String },
-  coordinates: {
-    lat: { type: Number, required: true },
-    lng: { type: Number, required: true },
-  },
-});
 
 const RoomSchema: Schema = new Schema({
   type: { type: String, required: true },
@@ -106,8 +87,6 @@ const RetreatSchema: Schema = new Schema(
       },
     },
     imageUrls: [{ type: String, required: true }],
-    isVerified: { type: Boolean, default: false },
-    locations: LocationSchema,
     features: { type: String, required: true },
     benefits: { type: String, required: true },
     programs: { type: String, required: true },
@@ -131,6 +110,7 @@ const RetreatSchema: Schema = new Schema(
       },
     ],
     isWishlisted: { type: Boolean, default: false },
+    isApproved: { type: Boolean, default: false },
   },
   { timestamps: true }
 );

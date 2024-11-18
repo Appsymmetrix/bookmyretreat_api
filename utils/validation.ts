@@ -93,15 +93,6 @@ export const retreatSchema = Joi.object({
     coordinates: Joi.array().items(Joi.number()).length(2).required(),
   }).required(),
   imageUrls: Joi.array().items(Joi.string().uri()).required(),
-  isVerified: Joi.boolean().optional(),
-  locations: Joi.object({
-    name: Joi.string().required(),
-    description: Joi.string(),
-    coordinates: Joi.object({
-      lat: Joi.number().required(),
-      lng: Joi.number().required(),
-    }).required(),
-  }),
   features: Joi.string().required(),
   benefits: Joi.string().required(),
   programs: Joi.string().required(),
@@ -125,6 +116,7 @@ export const retreatSchema = Joi.object({
     })
   ),
   isWishlisted: Joi.boolean().optional(),
+  isApproved: Joi.boolean().optional(),
 });
 
 export const categorySchema = Joi.object({

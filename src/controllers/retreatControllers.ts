@@ -2,7 +2,6 @@ import { Request, Response } from "express";
 import Retreat from "../models/RetreatModal";
 import { retreatSchema } from "../../utils/validation";
 
-// Create Retreat
 export const createRetreat = async (
   req: Request,
   res: Response
