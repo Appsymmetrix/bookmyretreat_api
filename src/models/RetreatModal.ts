@@ -11,6 +11,7 @@ interface IRetreat extends Document {
   title: string;
   description: string;
   price: number;
+  organizerId?: ObjectId;
   organizerName: string;
   organizerContact: string;
   retreatMonths: string;
@@ -62,6 +63,7 @@ const RetreatSchema: Schema = new Schema(
     title: { type: String, required: true },
     description: { type: String, required: true },
     price: { type: Number, required: true },
+    organizerId: { type: Schema.Types.ObjectId, ref: "Organizer" },
     organizerName: { type: String, required: true },
     organizerContact: { type: String, required: true },
     retreatMonths: { type: String, required: true },

@@ -6,6 +6,7 @@ import {
   updateRetreat,
   getAllRetreats,
   getRetreatById,
+  getRetreatsByOrganizer,
 } from "../controllers/retreatControllers";
 import { verifyToken, authorizeRole } from "../middleware/authMiddleware";
 
@@ -35,5 +36,10 @@ router.delete(
 router.get("/get-all-retreats", asyncHandler(getAllRetreats));
 
 router.get("/get-retreats/:id", asyncHandler(getRetreatById));
+
+router.get(
+  "/organiser/retreats/:organizerId",
+  asyncHandler(getRetreatsByOrganizer)
+);
 
 export default router;
