@@ -2,6 +2,7 @@ import mongoose, { Schema, Document } from "mongoose";
 
 export interface IBooking extends Document {
   userId: mongoose.Types.ObjectId;
+  retreatId: mongoose.Types.ObjectId; // New field for retreat reference
   dates: {
     start: Date;
     end: Date;
@@ -16,6 +17,7 @@ export interface IBooking extends Document {
 
 const BookingSchema: Schema = new Schema({
   userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+  retreatId: { type: mongoose.Schema.Types.ObjectId, ref: "Retreat", required: true }, 
   dates: {
     start: { type: Date, required: true },
     end: { type: Date, required: true },

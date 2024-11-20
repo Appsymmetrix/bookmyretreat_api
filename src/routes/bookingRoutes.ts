@@ -14,7 +14,10 @@ router.post("/add-retreat-bookings", asyncHandler(createBooking));
 
 router.get("/get-retreat-bookings/:userId", asyncHandler(getBookingsByUserId));
 
-router.get("/organizer/bookings", asyncHandler(getAllBookingsForOrganizer));
+router.get(
+  "/bookings/organizer/:retreatId",
+  asyncHandler(getAllBookingsForOrganizer)
+);
 
 router.patch("/accept-booking/:bookingId", asyncHandler(acceptBooking));
 

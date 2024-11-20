@@ -4,7 +4,6 @@ import { bookingValidationSchema } from "../../utils/validation";
 import { generateOrderId } from "../../utils/types";
 import mongoose from "mongoose";
 
-// Utility to check if ObjectId is valid
 const isValidObjectId = (id: string) => mongoose.Types.ObjectId.isValid(id);
 
 const handleDatabaseError = (err: any, res: Response) => {
@@ -26,6 +25,7 @@ export const createBooking = async (
 
   const {
     userId,
+    retreatId,
     dates,
     numberOfPeople,
     personName,
@@ -33,10 +33,18 @@ export const createBooking = async (
     totalAmount,
   } = req.body;
 
+  if (!isValidObjectId(retreatId)) {
+    return res.status(400).json({
+      success: false,
+      message: "Invalid Retreat ID",
+    });
+  }
+
   try {
     const orderId = generateOrderId();
     const newBooking = new Booking({
       userId,
+      retreatId,
       dates,
       numberOfPeople,
       personName,
@@ -71,8 +79,7 @@ export const getBookingsByUserId = async (
   }
 
   try {
-    const bookings = await Booking.find({ userId }).lean(); // Use lean to optimize performance
-
+    const bookings = await Booking.find({ userId }).lean();
     if (bookings.length === 0) {
       return res.status(404).json({
         success: false,
@@ -168,16 +175,26 @@ export const getAllBookingsForOrganizer = async (
   req: Request,
   res: Response
 ): Promise<Response | void> => {
+  const { retreatId } = req.params;
+
+  if (!isValidObjectId(retreatId)) {
+    return res.status(400).json({
+      success: false,
+      message: "Invalid Retreat ID",
+    });
+  }
+
   try {
-    const totalBookingsPromise = Booking.countDocuments();
+    const totalBookingsPromise = Booking.countDocuments({ retreatId });
     const pendingApprovalPromise = Booking.countDocuments({
+      retreatId,
       status: "pending",
     });
     const incomePromise = Booking.aggregate([
-      { $match: { status: "accepted" } },
+      { $match: { retreatId, status: "accepted" } },
       { $group: { _id: null, totalIncome: { $sum: "$totalAmount" } } },
     ]);
-    const bookingsPromise = Booking.find().lean();
+    const bookingsPromise = Booking.find({ retreatId }).lean();
 
     const [totalBookings, pendingApproval, income, bookings] =
       await Promise.all([

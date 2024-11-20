@@ -4,8 +4,11 @@ import Review from "../models/Review";
 import mongoose from "mongoose";
 import User from "../models/User";
 
-// Utility function to handle adding or updating reviews for a user
-const handleUserReview = async (userId: string, reviews: any[]) => {
+const handleUserReview = async (
+  userId: string,
+  retreatId: string,
+  reviews: any[]
+) => {
   const reviewData = reviews.map((review) => ({
     rating: review.rating,
     comment: review.comment,
@@ -13,7 +16,7 @@ const handleUserReview = async (userId: string, reviews: any[]) => {
     datePosted: new Date(),
   }));
 
-  let userReview = await Review.findOne({ userId });
+  let userReview = await Review.findOne({ userId, retreatId });
 
   if (userReview) {
     userReview.reviews.push(...reviewData);
@@ -22,6 +25,7 @@ const handleUserReview = async (userId: string, reviews: any[]) => {
   } else {
     const newReviewData = {
       userId,
+      retreatId,
       reviews: reviewData,
     };
     const newReview = new Review(newReviewData);
@@ -30,17 +34,21 @@ const handleUserReview = async (userId: string, reviews: any[]) => {
   }
 };
 
-// Add a new review
 export const addReview = async (req: Request, res: Response) => {
   const { error } = reviewSchema.validate(req.body);
   if (error) {
     return res.status(400).json({ message: error.details[0].message });
   }
 
-  const { userId, reviews } = req.body;
+  const { userId, retreatId, reviews } = req.body;
 
-  if (!mongoose.Types.ObjectId.isValid(userId)) {
-    return res.status(400).json({ message: "Invalid userId format" });
+  if (
+    !mongoose.Types.ObjectId.isValid(userId) ||
+    !mongoose.Types.ObjectId.isValid(retreatId)
+  ) {
+    return res
+      .status(400)
+      .json({ message: "Invalid userId or retreatId format" });
   }
 
   if (!Array.isArray(reviews) || reviews.length === 0) {
@@ -48,8 +56,7 @@ export const addReview = async (req: Request, res: Response) => {
   }
 
   try {
-    const userReview = await handleUserReview(userId, reviews);
-
+    const userReview = await handleUserReview(userId, retreatId, reviews);
     return res.status(201).json({
       message: "Review added successfully",
       reviews: userReview.reviews,

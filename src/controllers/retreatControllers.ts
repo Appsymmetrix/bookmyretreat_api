@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import { retreatSchema } from "../../utils/validation";
 import Retreat from "../models/RetreatModal";
 import mongoose from "mongoose";
+import Review from "../models/Review";
 
 export const createRetreat = async (
   req: Request,
@@ -214,6 +215,7 @@ export const getRetreatById = async (
   const { id } = req.params;
 
   try {
+    // Find the retreat by its ID
     const retreat = await Retreat.findById(id).lean();
 
     if (!retreat) {
@@ -223,10 +225,20 @@ export const getRetreatById = async (
       });
     }
 
+    const reviews = await Review.find({ retreatId: id }).lean();
+
+    const retreatWithReviews = {
+      ...retreat,
+      reviews: reviews.map((review) => ({
+        userId: review.userId,
+        reviews: review.reviews,
+      })),
+    };
+
     return res.status(200).json({
       success: true,
       message: "Retreat fetched successfully",
-      data: retreat,
+      data: retreatWithReviews,
     });
   } catch (err) {
     console.error(err);

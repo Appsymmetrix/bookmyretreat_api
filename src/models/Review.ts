@@ -10,6 +10,7 @@ interface IReviewDetails {
 
 export interface IReview extends Document {
   userId: string;
+  retreatId: Types.ObjectId;
   reviews: IReviewDetails[];
 }
 
@@ -22,6 +23,11 @@ const reviewDetailsSchema = new Schema<IReviewDetails>({
 
 const reviewSchema = new Schema<IReview>({
   userId: { type: String, required: true },
+  retreatId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Retreat",
+    required: true,
+  },
   reviews: { type: [reviewDetailsSchema], default: [] },
 });
 

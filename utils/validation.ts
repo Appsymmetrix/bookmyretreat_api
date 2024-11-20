@@ -143,10 +143,12 @@ const reviewDetailsSchema = Joi.object({
 
 export const reviewSchema = Joi.object({
   userId: Joi.string().required(),
+  retreatId: Joi.string().required(),
   reviews: Joi.array().items(reviewDetailsSchema).required(),
 });
 
 export const bookingValidationSchema = Joi.object({
+  retreatId: Joi.string().hex().length(24).required().label("Retreat ID"),
   userId: Joi.string().hex().length(24).required().label("User ID"),
   dates: Joi.object({
     start: Joi.date().required().label("Start date"),
