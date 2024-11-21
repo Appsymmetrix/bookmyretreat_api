@@ -56,10 +56,17 @@ export const addReview = async (req: Request, res: Response) => {
   }
 
   try {
+    const user = await User.findById(userId).select("name");
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
     const userReview = await handleUserReview(userId, retreatId, reviews);
+
     return res.status(201).json({
       message: "Review added successfully",
       reviews: userReview.reviews,
+      userName: user.name,
     });
   } catch (error) {
     console.error("Failed to add review:", error);
@@ -68,27 +75,33 @@ export const addReview = async (req: Request, res: Response) => {
 };
 
 export const getReviewsByUserId = async (req: Request, res: Response) => {
-  const { userId } = req.params;
+  const { userId, retreatId } = req.params;
 
-  if (!mongoose.Types.ObjectId.isValid(userId)) {
-    return res.status(400).json({ message: "Invalid userId format" });
+  if (
+    !mongoose.Types.ObjectId.isValid(userId) ||
+    !mongoose.Types.ObjectId.isValid(retreatId)
+  ) {
+    return res
+      .status(400)
+      .json({ message: "Invalid userId or retreatId format" });
   }
 
   try {
-    const user = await User.findById(userId).lean();
+    const user = await User.findById(userId).select("name").lean();
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
 
-    const userReview = await Review.findOne({ userId }).lean();
+    const userReview = await Review.findOne({ userId, retreatId }).lean();
     if (!userReview) {
       return res
         .status(404)
-        .json({ message: "No reviews found for this user" });
+        .json({ message: "No reviews found for this user and retreat" });
     }
 
     return res.status(200).json({
       message: "Reviews retrieved successfully",
+      userName: user.name,
       reviews: userReview.reviews,
     });
   } catch (error) {

@@ -18,18 +18,18 @@ const s3 = new AWS.S3({
 const storage: multer.StorageEngine = multer.memoryStorage();
 const upload: Multer = multer({ storage });
 
+const supportedFormats = [
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/tiff",
+];
+
 const uploadImages = async (req: Request, res: Response): Promise<void> => {
   if (!req.files || (req.files as Express.Multer.File[]).length === 0) {
     res.status(400).json({ error: "No files uploaded" });
     return;
   }
-
-  const supportedFormats = [
-    "image/jpeg",
-    "image/png",
-    "image/webp",
-    "image/tiff",
-  ];
 
   const promises = (req.files as Express.Multer.File[]).map(
     (file) =>
@@ -66,8 +66,13 @@ const uploadImages = async (req: Request, res: Response): Promise<void> => {
             });
           })
           .catch((error) => {
-            console.error("Sharp error:", error);
-            reject("Failed to compress images");
+            if (error.message.includes("Bitstream not supported")) {
+              console.error("Sharp error: Unsupported image format");
+              reject("Unsupported image format. Please upload a valid image.");
+            } else {
+              console.error("Sharp error:", error);
+              reject("Failed to compress images");
+            }
           });
       })
   );

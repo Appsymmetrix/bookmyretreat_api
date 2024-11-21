@@ -21,8 +21,8 @@ router.post(
 
 router.put(
   "/update-retreat/:id",
-  verifyToken,
-  authorizeRole(["admin", "organiser"]),
+  // verifyToken
+  // authorizeRole(["admin", "organiser"]),
   asyncHandler(updateRetreat)
 );
 

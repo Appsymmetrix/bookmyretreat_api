@@ -9,6 +9,6 @@ const router = express.Router();
 
 router.post("/add-review", asyncHandler(addReview));
 
-router.get("/get-review/:userId", asyncHandler(getReviewsByUserId));
+router.get("/get-review/:userId/:retreatId", asyncHandler(getReviewsByUserId));
 
 export default router;

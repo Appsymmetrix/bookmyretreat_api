@@ -74,18 +74,18 @@ export const updateRetreat = async (
   req: Request,
   res: Response
 ): Promise<Response> => {
-  const userRole = req?.user?.role as "user" | "organiser" | "admin";
+  // const userRole = req?.user?.role as "user" | "organiser" | "admin";
 
-  if (!req.user) {
-    return res.status(401).json({ message: "Unauthorized: No user found." });
-  }
+  // if (!req.user) {
+  //   return res.status(401).json({ message: "Unauthorized: No user found." });
+  // }
 
-  if (!["admin", "organiser"].includes(userRole)) {
-    return res.status(403).json({
-      success: false,
-      message: "Forbidden: You do not have the necessary permissions",
-    });
-  }
+  // if (!["admin", "organiser"].includes(userRole)) {
+  //   return res.status(403).json({
+  //     success: false,
+  //     message: "Forbidden: You do not have the necessary permissions",
+  //   });
+  // }
 
   const { error } = retreatSchema.validate(req.body);
   if (error) {
@@ -123,7 +123,6 @@ export const updateRetreat = async (
   }
 };
 
-// Delete Retreat
 export const deleteRetreat = async (
   req: Request,
   res: Response
@@ -215,7 +214,6 @@ export const getRetreatById = async (
   const { id } = req.params;
 
   try {
-    // Find the retreat by its ID
     const retreat = await Retreat.findById(id).lean();
 
     if (!retreat) {
@@ -227,21 +225,28 @@ export const getRetreatById = async (
 
     const reviews = await Review.find({ retreatId: id }).lean();
 
-    const retreatWithReviews = {
+    const allRatings = reviews.flatMap((review) =>
+      review.reviews.map((details) => details.rating)
+    );
+
+    const totalRatings = allRatings.reduce((sum, rating) => sum + rating, 0);
+    const averageRating =
+      allRatings.length > 0
+        ? parseFloat((totalRatings / allRatings.length).toFixed(1))
+        : 0;
+
+    const retreatWithRating = {
       ...retreat,
-      reviews: reviews.map((review) => ({
-        userId: review.userId,
-        reviews: review.reviews,
-      })),
+      averageRating,
     };
 
     return res.status(200).json({
       success: true,
       message: "Retreat fetched successfully",
-      data: retreatWithReviews,
+      data: retreatWithRating,
     });
-  } catch (err) {
-    console.error(err);
+  } catch (error) {
+    console.error("Error fetching retreat with rating:", error);
     return res.status(500).json({ success: false, message: "Server error" });
   }
 };
@@ -313,3 +318,5 @@ export const getRetreatsByOrganizer = async (
     });
   }
 };
+
+

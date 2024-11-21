@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
-import Retreat from "../models/RetreatModal";
 import Wishlist from "../models/Wishlist";
+import Retreat from "../models/RetreatModal";
+import mongoose from "mongoose";
 
 export const addToWishlist = async (
   req: Request,
@@ -16,32 +17,43 @@ export const addToWishlist = async (
   }
 
   try {
-    const existingWishlist = await Wishlist.findOne({
-      userId,
-      retreatId,
-    }).lean();
-    if (existingWishlist) {
-      return res.status(400).json({
-        success: false,
-        message: "Retreat is already in the wishlist",
-      });
-    }
+    let wishlist = await Wishlist.findOne({ userId });
 
-    const newWishlist = new Wishlist({ userId, retreatId });
-    await newWishlist.save();
+    if (!wishlist) {
+      wishlist = new Wishlist({
+        userId,
+        items: [{ retreatId, addedAt: new Date() }],
+      });
+      await wishlist.save();
+    } else {
+      const existingItem = wishlist.items.some(
+        (item) => item.retreatId.toString() === retreatId.toString()
+      );
+
+      if (existingItem) {
+        return res.status(400).json({
+          success: false,
+          message: "Retreat is already in the wishlist.",
+        });
+      }
+
+      wishlist.items.push({ retreatId, addedAt: new Date() });
+      wishlist.updatedAt = new Date();
+      await wishlist.save();
+    }
 
     await Retreat.findByIdAndUpdate(retreatId, { isWishlisted: true });
 
     return res.status(201).json({
       success: true,
-      message: "Retreat added to wishlist successfully",
-      data: newWishlist,
+      message: "Retreat added to wishlist successfully.",
+      data: wishlist,
     });
   } catch (err) {
     console.error("Error adding to wishlist:", err);
     return res.status(500).json({
       success: false,
-      message: "Server error occurred while adding to wishlist",
+      message: "Server error occurred while adding to wishlist.",
     });
   }
 };
@@ -60,29 +72,33 @@ export const removeFromWishlist = async (
   }
 
   try {
-    const deletedWishlist = await Wishlist.findOneAndDelete({
-      userId,
-      retreatId,
-    });
+    const wishlist = await Wishlist.findOne({ userId });
 
-    if (!deletedWishlist) {
+    if (!wishlist) {
       return res.status(404).json({
         success: false,
-        message: "Wishlist entry not found",
+        message: "Wishlist not found.",
       });
     }
+
+    wishlist.items = wishlist.items.filter(
+      (item) => item.retreatId.toString() !== retreatId.toString()
+    );
+
+    wishlist.updatedAt = new Date();
+    await wishlist.save();
 
     await Retreat.findByIdAndUpdate(retreatId, { isWishlisted: false });
 
     return res.status(200).json({
       success: true,
-      message: "Retreat removed from wishlist successfully",
+      message: "Retreat removed from wishlist successfully.",
     });
   } catch (err) {
     console.error("Error removing from wishlist:", err);
     return res.status(500).json({
       success: false,
-      message: "Server error occurred while removing from wishlist",
+      message: "Server error occurred while removing from wishlist.",
     });
   }
 };
@@ -93,7 +109,6 @@ export const getUserWishlist = async (
 ): Promise<Response | void> => {
   const { userId } = req.params;
 
-  // Validate userId
   if (!userId) {
     return res.status(400).json({
       success: false,
@@ -102,27 +117,31 @@ export const getUserWishlist = async (
   }
 
   try {
-    const userWishlist = await Wishlist.find({ userId })
-      .populate("retreatId")
+    const userObjectId = new mongoose.Types.ObjectId(userId);
+
+    const wishlist = await Wishlist.findOne({ userId: userObjectId })
+      .populate("items.retreatId")
       .lean();
 
-    if (!userWishlist || userWishlist.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: "No wishlist items found for this user",
+    if (!wishlist || wishlist.items.length === 0) {
+      console.log("No wishlist items found for this user.");
+      return res.status(200).json({
+        success: true,
+        message: "User's wishlist is empty.",
+        data: [],
       });
     }
 
     return res.status(200).json({
       success: true,
-      message: "User's wishlist fetched successfully",
-      data: userWishlist,
+      message: "User's wishlist fetched successfully.",
+      data: wishlist.items,
     });
   } catch (err) {
     console.error("Error retrieving user's wishlist:", err);
     return res.status(500).json({
       success: false,
-      message: "Server error occurred while fetching wishlist",
+      message: "Server error occurred while fetching wishlist.",
     });
   }
 };
