@@ -5,10 +5,8 @@ export function generateResetCode(): string {
 }
 
 export const generateOrderId = () => {
-  const prefix = "ORD"; // Prefix for the order ID
-  const middleText = "RETREAT"; // Custom text in the middle
-  const timestamp = Date.now().toString(); // Current timestamp in milliseconds
-  const randomNumber = Math.floor(1000 + Math.random() * 9000); // 4-digit random number
-  return `${prefix}-${timestamp}-${middleText}-${randomNumber}`;
+  const randomAlpha = Math.random().toString(36).substring(2, 6).toUpperCase(); // 4-character random alphanumeric string
+  const randomNumber = Math.floor(100000 + Math.random() * 900000); // 6-digit random number
+  const suffix = Math.floor(100 + Math.random() * 900); // 3-digit random number
+  return `${randomAlpha}${randomNumber}${suffix}`; // Concatenate all parts
 };
-

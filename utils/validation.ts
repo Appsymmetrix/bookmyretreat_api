@@ -163,7 +163,7 @@ export const bookingValidationSchema = Joi.object({
   accommodation: Joi.string().required().label("Accommodation"),
   totalAmount: Joi.number().min(0).required().label("Total Amount"),
   status: Joi.string()
-    .valid("pending", "accepted", "denied")
+    .valid("pending", "upcoming", "cancelled", "completed", "confirmed")
     .default("pending")
     .label("Status"),
 });

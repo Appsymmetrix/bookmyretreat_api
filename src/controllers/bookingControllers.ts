@@ -3,6 +3,7 @@ import Booking from "../models/Booking";
 import { bookingValidationSchema } from "../../utils/validation";
 import { generateOrderId } from "../../utils/types";
 import mongoose from "mongoose";
+import { Types } from "mongoose";
 
 const isValidObjectId = (id: string) => mongoose.Types.ObjectId.isValid(id);
 
@@ -51,13 +52,13 @@ export const createBooking = async (
       accommodation,
       totalAmount,
       orderId,
-      status: "pending",
+      status: "confirmed",
     });
 
     await newBooking.save();
     return res.status(201).json({
       success: true,
-      message: "Booking created successfully",
+      message: "Booking confirmed successfully",
       booking: newBooking.toObject(),
     });
   } catch (err) {
@@ -79,29 +80,120 @@ export const getBookingsByUserId = async (
   }
 
   try {
-    const bookings = await Booking.find({ userId }).lean();
-    if (bookings.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: "No bookings found for this user",
-      });
-    }
+    const currentDate = new Date();
+
+    const categorizedBookings = await Booking.aggregate([
+      { $match: { userId: new Types.ObjectId(userId) } },
+      {
+        $lookup: {
+          from: "retreats",
+          localField: "retreatId",
+          foreignField: "_id",
+          as: "retreatDetails",
+        },
+      },
+      {
+        $unwind: { path: "$retreatDetails", preserveNullAndEmptyArrays: true },
+      },
+      {
+        $addFields: {
+          category: {
+            $switch: {
+              branches: [
+                {
+                  case: { $eq: ["$status", "cancelled"] },
+                  then: "canceled",
+                },
+                {
+                  case: {
+                    $and: [
+                      { $eq: ["$status", "confirmed"] },
+                      { $gte: ["$dates.start", currentDate] },
+                    ],
+                  },
+                  then: "upcoming",
+                },
+                {
+                  case: { $eq: ["$status", "completed"] },
+                  then: "completed",
+                },
+                {
+                  case: { $eq: ["$status", "confirmed"] },
+                  then: "confirmed",
+                },
+                {
+                  case: {
+                    $or: [{ $eq: ["$status", null] }, { $eq: ["$status", ""] }],
+                  },
+                  then: "unconfirmed",
+                },
+              ],
+              default: "unknown",
+            },
+          },
+        },
+      },
+      {
+        $group: {
+          _id: "$category",
+          bookings: {
+            $push: {
+              _id: "$_id",
+              retreatId: "$retreatId",
+              retreatTitle: "$retreatDetails.title",
+              retreatAddress: "$retreatDetails.fullAddress",
+              dates: "$dates",
+              numberOfPeople: "$numberOfPeople",
+              accommodation: "$accommodation",
+              totalAmount: "$totalAmount",
+              status: "$status",
+              orderId: "$orderId",
+            },
+          },
+        },
+      },
+      {
+        $project: {
+          category: "$_id",
+          bookings: 1,
+          _id: 0,
+        },
+      },
+    ]);
+
+    console.log("Categorized Bookings:", categorizedBookings);
+
+    const response = {
+      upcoming:
+        categorizedBookings.find((c) => c.category === "upcoming")?.bookings ||
+        [],
+      confirmed:
+        categorizedBookings.find((c) => c.category === "confirmed")?.bookings ||
+        [],
+      completed:
+        categorizedBookings.find((c) => c.category === "completed")?.bookings ||
+        [],
+      canceled:
+        categorizedBookings.find((c) => c.category === "canceled")?.bookings ||
+        [],
+    };
 
     return res.status(200).json({
       success: true,
-      message: "Bookings retrieved successfully",
-      bookings,
+      message: "Bookings categorized successfully",
+      data: response,
     });
   } catch (err) {
     return handleDatabaseError(err, res);
   }
 };
 
-export const acceptBooking = async (
+export const cancelBooking = async (
   req: Request,
   res: Response
 ): Promise<Response | void> => {
   const { bookingId } = req.params;
+  const { cancellationReason } = req.body;
 
   if (!isValidObjectId(bookingId)) {
     return res.status(400).json({
@@ -113,7 +205,7 @@ export const acceptBooking = async (
   try {
     const booking = await Booking.findByIdAndUpdate(
       bookingId,
-      { status: "accepted" },
+      { status: "cancelled", cancellationReason },
       { new: true }
     ).lean();
 
@@ -126,44 +218,7 @@ export const acceptBooking = async (
 
     return res.status(200).json({
       success: true,
-      message: "Booking accepted successfully",
-      booking,
-    });
-  } catch (err) {
-    return handleDatabaseError(err, res);
-  }
-};
-
-export const denyBooking = async (
-  req: Request,
-  res: Response
-): Promise<Response | void> => {
-  const { bookingId } = req.params;
-
-  if (!isValidObjectId(bookingId)) {
-    return res.status(400).json({
-      success: false,
-      message: "Invalid Booking ID",
-    });
-  }
-
-  try {
-    const booking = await Booking.findByIdAndUpdate(
-      bookingId,
-      { status: "denied" },
-      { new: true }
-    ).lean();
-
-    if (!booking) {
-      return res.status(404).json({
-        success: false,
-        message: "Booking not found",
-      });
-    }
-
-    return res.status(200).json({
-      success: true,
-      message: "Booking denied successfully",
+      message: "Booking cancelled successfully",
       booking,
     });
   } catch (err) {
@@ -185,34 +240,19 @@ export const getAllBookingsForOrganizer = async (
   }
 
   try {
-    const totalBookingsPromise = Booking.countDocuments({ retreatId });
-    const pendingApprovalPromise = Booking.countDocuments({
-      retreatId,
-      status: "pending",
-    });
-    const incomePromise = Booking.aggregate([
-      { $match: { retreatId, status: "accepted" } },
-      { $group: { _id: null, totalIncome: { $sum: "$totalAmount" } } },
-    ]);
-    const bookingsPromise = Booking.find({ retreatId }).lean();
+    const bookings = await Booking.find({ retreatId }).lean();
 
-    const [totalBookings, pendingApproval, income, bookings] =
-      await Promise.all([
-        totalBookingsPromise,
-        pendingApprovalPromise,
-        incomePromise,
-        bookingsPromise,
-      ]);
+    if (!bookings || bookings.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "No bookings found for this retreat",
+      });
+    }
 
     return res.status(200).json({
       success: true,
-      message: "Booking statistics retrieved successfully",
-      data: {
-        totalBookings,
-        pendingApproval,
-        income: income[0]?.totalIncome || 0,
-        bookings,
-      },
+      message: "User booking details retrieved successfully",
+      bookings,
     });
   } catch (err) {
     return handleDatabaseError(err, res);

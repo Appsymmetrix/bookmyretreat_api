@@ -2,8 +2,6 @@ import { Router } from "express";
 import {
   createBooking,
   getBookingsByUserId,
-  acceptBooking,
-  denyBooking,
   getAllBookingsForOrganizer,
 } from "../controllers/bookingControllers";
 import asyncHandler from "../../utils/asyncHandler";
@@ -18,9 +16,5 @@ router.get(
   "/bookings/organizer/:retreatId",
   asyncHandler(getAllBookingsForOrganizer)
 );
-
-router.patch("/accept-booking/:bookingId", asyncHandler(acceptBooking));
-
-router.patch("/deny-booking/:bookingId", asyncHandler(denyBooking));
 
 export default router;
