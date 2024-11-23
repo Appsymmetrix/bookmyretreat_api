@@ -12,7 +12,6 @@ export interface IUser extends Document {
   createdAt: Date;
   mobileNumber: string;
   city: string;
-  countryCode: string;
   role: "user" | "organiser" | "admin";
   notifications: INotification[];
   iat?: number;
@@ -64,12 +63,7 @@ const UserSchema: Schema = new Schema(
         return this.role === "user";
       },
     },
-    countryCode: {
-      type: String,
-      required: function (this: IUser) {
-        return this.role === "user";
-      },
-    },
+
     role: {
       type: String,
       required: true,

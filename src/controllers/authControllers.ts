@@ -26,11 +26,11 @@ const handleError = (res: Response, statusCode: number, message: string) => {
 };
 
 const createJWTToken = (user: IUser) => {
-  const { _id, email, role, name, mobileNumber, city, countryCode } = user;
+  const { _id, email, role, name, mobileNumber, city } = user;
   return jwt.sign(
-    { id: _id, email, role, name, mobileNumber, city, countryCode },
+    { id: _id, email, role, name, mobileNumber, city },
     ACCESS_TOKEN_SECRET as string,
-    { expiresIn: "1h" }
+    { expiresIn: "1y" }
   );
 };
 
@@ -52,19 +52,16 @@ export const registerUser = async (
     password,
     mobileNumber,
     city,
-    countryCode,
     imageUrl,
     organizationName,
     description,
   } = req.body;
 
   try {
-    // Check if the email already exists
     const existingUser = await User.findOne({ email });
     if (existingUser)
       return handleError(res, 400, "Email is already registered");
 
-    // Admin-specific check using the x-admin-secret header
     if (
       role === "admin" &&
       req.headers["x-admin-secret"] !== ADMIN_SECRET_KEY
@@ -72,25 +69,21 @@ export const registerUser = async (
       return handleError(res, 403, "Invalid admin secret");
     }
 
-    // Hash the password before saving
     const hashedPassword = await bcrypt.hash(password, 10);
     const verificationCode = generateResetCode();
-    const verificationCodeExpires = new Date(Date.now() + 60000); // 1 minute expiry for verification code
-
-    // Create a new user document
+    const verificationCodeExpires = new Date(Date.now() + 60000);
     const newUser = new User({
-      name: role === "user" ? name : undefined, // name is required only for user and organiser
+      name: role === "user" ? name : undefined,
       email,
       password: hashedPassword,
       mobileNumber,
-      city: role === "user" ? city : undefined, // city and countryCode are required only for users
-      countryCode: role === "user" ? countryCode : undefined,
-      role: role || "user", // Default to "user" if no role is provided
+      city: role === "user" ? city : undefined,
+      role: role || "user",
       imageUrl: imageUrl || "",
       isEmailVerified: false,
       verificationCode,
       verificationCodeExpires,
-      isNewUser: true, // Assume user is new
+      isNewUser: true,
       organization:
         role === "organiser"
           ? { name: organizationName, description, imageUrl }
@@ -109,7 +102,6 @@ export const registerUser = async (
       ...(newUser.role === "user" && {
         name: newUser.name,
         city: newUser.city,
-        countryCode: newUser.countryCode,
       }),
       ...(newUser.role === "organiser" && {
         organizationName: newUser.organization?.name,
@@ -137,21 +129,17 @@ export const loginUser = async (
   const { email, password } = req.body;
 
   try {
-    // Find the user by email
     const user = await User.findOne({ email });
     if (!user) return handleError(res, 400, "User not found");
 
-    // Compare the entered password with the hashed one
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) return handleError(res, 400, "Incorrect password");
 
-    // Mark the user as no longer "new" if they are logging in for the first time
     if (user.isNewUser) {
       user.isNewUser = false;
       await user.save();
     }
 
-    // Create JWT token
     const token = createJWTToken(user);
 
     return res.status(200).json({
@@ -167,7 +155,6 @@ export const loginUser = async (
         ...(user.role === "user" && {
           name: user.name,
           city: user.city,
-          countryCode: user.countryCode,
         }),
         ...(user.role === "organiser" && {
           organizationName: user.organization?.name,

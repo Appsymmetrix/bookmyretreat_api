@@ -22,7 +22,6 @@ export const userValidation = (data: any) => {
       }),
     mobileNumber: Joi.string().min(10).max(15).required(),
     city: Joi.string().required(),
-    countryCode: Joi.string().required(),
     role: Joi.string().valid("user", "admin", "organiser").optional(),
     isEmailVerified: Joi.boolean().optional(),
   });
@@ -51,7 +50,7 @@ export const userValidationPartial = (data: any) => {
     email: Joi.string().email().required(),
     mobileNumber: Joi.string().min(10).max(15).required(),
     city: Joi.string().required(),
-    countryCode: Joi.string().required(),
+    countryCode: Joi.string().optional(),
     role: Joi.string().valid("user", "admin", "organiser").optional(),
   });
 
@@ -81,7 +80,7 @@ export const retreatSchema = Joi.object({
     Joi.object({
       name: Joi.string().required(),
       description: Joi.string().required(),
-      image: Joi.string(),
+      image: Joi.string().optional().allow(null, ""), // Make image optional
     })
   ),
   city: Joi.string().required(),
@@ -116,8 +115,8 @@ export const retreatSchema = Joi.object({
       name: Joi.string().required(),
     })
   ),
-  isWishlisted: Joi.boolean().optional(),
-  isApproved: Joi.boolean().optional(),
+  isWishlisted: Joi.boolean(),
+  isApproved: Joi.boolean(),
 });
 
 export const categorySchema = Joi.object({

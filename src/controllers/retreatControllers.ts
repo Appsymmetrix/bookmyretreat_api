@@ -35,7 +35,7 @@ export const createRetreat = async (
   }
 
   try {
-    const { title, organizerId } = req.body;
+    const { title, organizerId, teachers } = req.body;
 
     if (!organizerId) {
       return res.status(400).json({
@@ -43,6 +43,11 @@ export const createRetreat = async (
         message: "Organizer ID is required",
       });
     }
+
+    const updatedTeachers = teachers.map((teacher: any) => ({
+      ...teacher,
+      image: teacher.image || null,
+    }));
 
     const existingRetreat = await Retreat.findOne({ title }).lean();
 
@@ -55,6 +60,7 @@ export const createRetreat = async (
 
     const newRetreat = new Retreat({
       ...req.body,
+      teachers: updatedTeachers,
     });
 
     await newRetreat.save();
@@ -318,5 +324,3 @@ export const getRetreatsByOrganizer = async (
     });
   }
 };
-
-

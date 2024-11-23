@@ -1,4 +1,3 @@
-// src/types/express.d.ts
 import { Request } from "express";
 
 declare global {
@@ -11,7 +10,6 @@ declare global {
         name: string;
         mobileNumber: string;
         city: string;
-        countryCode: string;
         iat: number;
         exp: number;
       };

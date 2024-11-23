@@ -55,7 +55,7 @@ const RoomSchema: Schema = new Schema({
 const TeacherSchema: Schema = new Schema({
   name: { type: String, required: true },
   description: { type: String, required: true },
-  image: { type: String, required: false },
+  image: { type: String, required: false }, // Make the image field optional
 });
 
 const RetreatSchema: Schema = new Schema(

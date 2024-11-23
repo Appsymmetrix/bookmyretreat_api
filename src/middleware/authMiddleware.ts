@@ -41,7 +41,6 @@ export const verifyToken = (
       email: decoded.email,
       mobileNumber: decoded.mobileNumber,
       city: decoded.city,
-      countryCode: decoded.countryCode,
       role: decoded.role,
       iat: decoded.iat,
       exp: decoded.exp,
