@@ -3,16 +3,29 @@ import Wishlist from "../models/Wishlist";
 import Retreat from "../models/RetreatModal";
 import mongoose from "mongoose";
 
+// Helper to validate ObjectId
+const isValidObjectId = (id: string): boolean => {
+  return mongoose.Types.ObjectId.isValid(id);
+};
+
 export const addToWishlist = async (
   req: Request,
   res: Response
 ): Promise<Response | void> => {
   const { userId, retreatId } = req.body;
 
+  // Validate inputs
   if (!userId || !retreatId) {
     return res.status(400).json({
       success: false,
       message: "userId and retreatId are required.",
+    });
+  }
+
+  if (!isValidObjectId(userId) || !isValidObjectId(retreatId)) {
+    return res.status(400).json({
+      success: false,
+      message: "Invalid userId or retreatId format.",
     });
   }
 
@@ -64,10 +77,18 @@ export const removeFromWishlist = async (
 ): Promise<Response | void> => {
   const { userId, retreatId } = req.body;
 
+  // Validate inputs
   if (!userId || !retreatId) {
     return res.status(400).json({
       success: false,
       message: "userId and retreatId are required.",
+    });
+  }
+
+  if (!isValidObjectId(userId) || !isValidObjectId(retreatId)) {
+    return res.status(400).json({
+      success: false,
+      message: "Invalid userId or retreatId format.",
     });
   }
 
@@ -112,7 +133,15 @@ export const getUserWishlist = async (
   if (!userId) {
     return res.status(400).json({
       success: false,
-      message: "userId parameter is required",
+      message: "userId parameter is required.",
+    });
+  }
+
+  // Validate userId format
+  if (!mongoose.Types.ObjectId.isValid(userId)) {
+    return res.status(400).json({
+      success: false,
+      message: "Invalid userId format.",
     });
   }
 
