@@ -7,6 +7,8 @@ import {
   getAllRetreats,
   getRetreatById,
   getRetreatsByOrganizer,
+  getCreatedRetreatsByAdmin,
+  approveRetreat,
 } from "../controllers/retreatControllers";
 import { verifyToken, authorizeRole } from "../middleware/authMiddleware";
 
@@ -40,6 +42,19 @@ router.get("/get-retreats/:id", asyncHandler(getRetreatById));
 router.get(
   "/organiser/retreats/:organizerId",
   asyncHandler(getRetreatsByOrganizer)
+);
+
+router.get(
+  "/get-retreat-admin",
+  // verifyToken,
+  // authorizeRole(["admin"]), // Only admin can approve retreats,
+  asyncHandler(getCreatedRetreatsByAdmin)
+);
+router.put(
+  "/approve-retreat/:id", // Using PUT to approve retreat by ID
+  // verifyToken,
+  // authorizeRole(["admin"]), // Only admin can approve retreats
+  asyncHandler(approveRetreat)
 );
 
 export default router;

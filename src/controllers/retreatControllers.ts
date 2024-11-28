@@ -324,3 +324,98 @@ export const getRetreatsByOrganizer = async (
     });
   }
 };
+
+export const getCreatedRetreatsByAdmin = async (
+  req: Request,
+  res: Response
+): Promise<Response> => {
+  const { page = 1, limit = 10 } = req.query;
+
+  try {
+    const parsedLimit = parseInt(limit as string, 10);
+    const parsedPage = parseInt(page as string, 10);
+
+    if (isNaN(parsedLimit) || parsedLimit <= 0) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid limit value" });
+    }
+
+    if (isNaN(parsedPage) || parsedPage <= 0) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid page number" });
+    }
+
+    const skip = (parsedPage - 1) * parsedLimit;
+
+    const retreats = await Retreat.find({ isApproved: false })
+      .populate("organizerId")
+      .skip(skip)
+      .limit(parsedLimit)
+      .sort({ createdAt: -1 })
+      .lean();
+
+    const totalRetreats = await Retreat.countDocuments({ isApproved: false });
+    const totalPages = Math.ceil(totalRetreats / parsedLimit);
+
+    return res.status(200).json({
+      success: true,
+      message: "Retreats created by organizers fetched successfully",
+      data: {
+        retreats,
+        totalRetreats,
+        totalPages,
+        currentPage: parsedPage,
+      },
+    });
+  } catch (error) {
+    console.error("Error fetching created retreats by organizer:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Server error",
+    });
+  }
+};
+
+export const approveRetreat = async (
+  req: Request,
+  res: Response
+): Promise<Response> => {
+  // const userRole = req?.user?.role;
+
+  // if (userRole !== "admin") {
+  //   return res.status(403).json({
+  //     success: false,
+  //     message: "Forbidden: You do not have the necessary permissions",
+  //   });
+  // }
+
+  const { id } = req.params;
+
+  try {
+    const retreat = await Retreat.findById(id);
+
+    if (!retreat) {
+      return res.status(404).json({
+        success: false,
+        message: "Retreat not found",
+      });
+    }
+
+    retreat.isApproved = true;
+    await retreat.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "Retreat approved successfully",
+      data: retreat,
+    });
+  } catch (err) {
+    console.error("Error approving retreat:", err);
+    return res.status(500).json({
+      success: false,
+      message: "Server error",
+    });
+  }
+};

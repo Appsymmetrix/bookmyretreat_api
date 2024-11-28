@@ -1,5 +1,5 @@
 import mongoose, { Document, Schema, ObjectId } from "mongoose";
-
+import Organizer from "./Organizer";
 interface IRoom {
   type: string;
   numberOfRooms: number;
@@ -55,7 +55,7 @@ const RoomSchema: Schema = new Schema({
 const TeacherSchema: Schema = new Schema({
   name: { type: String, required: true },
   description: { type: String, required: true },
-  image: { type: String, required: false }, // Make the image field optional
+  image: { type: String, required: false },
 });
 
 const RetreatSchema: Schema = new Schema(
@@ -63,7 +63,7 @@ const RetreatSchema: Schema = new Schema(
     title: { type: String, required: true },
     description: { type: String, required: true },
     price: { type: Number, required: true },
-    organizerId: { type: Schema.Types.ObjectId, ref: "Organizer" },
+    organizerId: { type: Schema.Types.ObjectId, ref: Organizer },
     organizerName: { type: String, required: true },
     organizerContact: { type: String, required: true },
     retreatMonths: { type: String, required: true },
