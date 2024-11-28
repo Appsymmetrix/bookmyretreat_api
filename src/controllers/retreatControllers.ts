@@ -212,7 +212,6 @@ export const getAllRetreats = async (
     });
   }
 };
-
 export const getRetreatById = async (
   req: Request,
   res: Response
@@ -223,36 +222,25 @@ export const getRetreatById = async (
     const retreat = await Retreat.findById(id).lean();
 
     if (!retreat) {
-      return res.status(404).json({
-        success: false,
-        message: "Retreat not found",
-      });
+      return res
+        .status(404)
+        .json({ success: false, message: "Retreat not found" });
     }
 
-    const reviews = await Review.find({ retreatId: id }).lean();
-
-    const allRatings = reviews.flatMap((review) =>
-      review.reviews.map((details) => details.rating)
-    );
-
-    const totalRatings = allRatings.reduce((sum, rating) => sum + rating, 0);
-    const averageRating =
-      allRatings.length > 0
-        ? parseFloat((totalRatings / allRatings.length).toFixed(1))
-        : 0;
-
-    const retreatWithRating = {
-      ...retreat,
-      averageRating,
-    };
+    if (retreat.category) {
+      retreat.category = retreat.category.map((cat: any) => {
+        const { _id, ...categoryWithoutId } = cat;
+        return categoryWithoutId;
+      });
+    }
 
     return res.status(200).json({
       success: true,
       message: "Retreat fetched successfully",
-      data: retreatWithRating,
+      data: retreat,
     });
   } catch (error) {
-    console.error("Error fetching retreat with rating:", error);
+    console.error("Error fetching retreat:", error);
     return res.status(500).json({ success: false, message: "Server error" });
   }
 };
