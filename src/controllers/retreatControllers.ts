@@ -167,7 +167,7 @@ export const getAllRetreats = async (
   req: Request,
   res: Response
 ): Promise<Response> => {
-  const { page = 1, limit = 10 } = req.query;
+  const { page = 1, limit = 10, categoryId } = req.query;
 
   try {
     const parsedLimit = parseInt(limit as string, 10);
@@ -185,15 +185,22 @@ export const getAllRetreats = async (
     }
 
     const skip = (parsedPage - 1) * parsedLimit;
-    const retreats = await Retreat.find({})
+
+    let filter: any = {};
+    if (categoryId) {
+      filter["category.id"] = categoryId;
+    }
+
+    const retreats = await Retreat.find(filter)
       .skip(skip)
       .limit(parsedLimit)
       .sort({ _id: 1 })
       .lean();
 
-    const totalRetreats = await Retreat.countDocuments();
+    const totalRetreats = await Retreat.countDocuments(filter);
     const totalPages = Math.ceil(totalRetreats / parsedLimit);
 
+    // Return the filtered data along with pagination information
     return res.status(200).json({
       success: true,
       message: "Retreats fetched successfully",
@@ -212,6 +219,7 @@ export const getAllRetreats = async (
     });
   }
 };
+
 export const getRetreatById = async (
   req: Request,
   res: Response
@@ -227,17 +235,27 @@ export const getRetreatById = async (
         .json({ success: false, message: "Retreat not found" });
     }
 
+    const reviews = await Review.aggregate([
+      { $match: { retreatId: new mongoose.Types.ObjectId(id) } },
+      { $unwind: "$reviews" },
+      { $group: { _id: null, averageRating: { $avg: "$reviews.rating" } } },
+    ]);
+
+    const averageRating = reviews.length > 0 ? reviews[0].averageRating : 0;
+
     if (retreat.category) {
       retreat.category = retreat.category.map((cat: any) => {
         const { _id, ...categoryWithoutId } = cat;
         return categoryWithoutId;
       });
     }
-
     return res.status(200).json({
       success: true,
       message: "Retreat fetched successfully",
-      data: retreat,
+      data: {
+        ...retreat,
+        averageRating,
+      },
     });
   } catch (error) {
     console.error("Error fetching retreat:", error);
