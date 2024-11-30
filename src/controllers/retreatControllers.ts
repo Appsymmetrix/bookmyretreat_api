@@ -186,7 +186,7 @@ export const getAllRetreats = async (
 
     const skip = (parsedPage - 1) * parsedLimit;
 
-    let filter: any = {};
+    let filter: any = { isApproved: true };
     if (categoryId) {
       filter["category.id"] = categoryId;
     }
