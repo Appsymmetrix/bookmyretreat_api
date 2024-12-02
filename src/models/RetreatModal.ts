@@ -10,7 +10,7 @@ interface IRoom {
   roomPrice: number;
 }
 
-interface IRetreat extends Document {
+export interface IRetreat extends Document {
   title: string;
   description: string;
   price: number;

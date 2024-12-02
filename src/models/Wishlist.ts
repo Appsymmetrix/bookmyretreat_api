@@ -1,25 +1,46 @@
-import mongoose, { Schema, Document, ObjectId } from "mongoose";
+import mongoose, { Schema, Document, Types } from "mongoose";
 
-export interface IWishlist extends Document {
-  userId: ObjectId;
-  items: { retreatId: ObjectId; addedAt: Date }[];
-  createdAt: Date;
-  updatedAt: Date;
+export interface WishlistItem {
+  serviceType: "Retreat" | "Blog";
+  serviceId: Types.ObjectId;
+  addedAt?: Date;
+  serviceData?: any;
 }
 
-const WishlistSchema: Schema = new Schema(
+export interface IWishlist extends Document {
+  userId: Types.ObjectId;
+  items: WishlistItem[];
+  createdAt?: Date;
+  updatedAt?: Date;
+}
+
+const WishlistItemSchema = new Schema<WishlistItem>(
   {
-    userId: { type: Schema.Types.ObjectId, ref: "User", required: true },
-    items: [
-      {
-        retreatId: {
-          type: Schema.Types.ObjectId,
-          ref: "Retreat",
-          required: true,
-        },
-        addedAt: { type: Date, default: Date.now },
-      },
-    ],
+    serviceType: {
+      type: String,
+      required: true,
+      enum: ["Retreat", "Blog"],
+    },
+    serviceId: {
+      type: mongoose.Schema.Types.ObjectId,
+      required: true,
+      refPath: "serviceType",
+    },
+    addedAt: { type: Date, default: Date.now },
+  },
+  { _id: false }
+);
+
+const WishlistSchema = new Schema<IWishlist>(
+  {
+    userId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
+    items: [WishlistItemSchema],
+    createdAt: { type: Date, default: Date.now },
+    updatedAt: { type: Date, default: Date.now },
   },
   { timestamps: true }
 );

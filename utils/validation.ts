@@ -222,3 +222,30 @@ export const organizerValidation = (data: any) => {
 
   return schema.validate(data, { abortEarly: false });
 };
+
+export const blogValidationSchema = Joi.object({
+  title: Joi.string().required().trim(),
+  desc: Joi.string().required(),
+  imageTileUrl: Joi.string().uri().required(),
+  slug: Joi.string().required().trim().lowercase(),
+  readTime: Joi.number().required(),
+  content: Joi.string().required(),
+  category: Joi.string().hex().length(24).required(),
+  keywords: Joi.array().items(Joi.string().trim()).optional(),
+});
+
+export const contactValidationSchema = Joi.object({
+  name: Joi.string().required().messages({
+    "string.base": "Name must be a string",
+    "any.required": "Name is required",
+  }),
+  mobileNumber: Joi.string().required().length(10).messages({
+    "string.base": "Mobile number must be a string",
+    "string.length": "Mobile number must be exactly 10 digits",
+    "any.required": "Mobile number is required",
+  }),
+  category: Joi.string().required().messages({
+    "string.base": "Category must be a string",
+    "any.required": "Category is required",
+  }),
+});

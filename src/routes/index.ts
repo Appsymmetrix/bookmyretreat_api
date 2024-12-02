@@ -8,6 +8,9 @@ import bookingRoutes from "./bookingRoutes";
 import subscriptionRoutes from "./subscriptionRoutes";
 import notificationRoutes from "./notificationRoutes";
 import uploadRoutes from "./uploadRoutes";
+import blogCategoryRoutes from "./blogCategoryRoutes";
+import blogRoute from "./blogRoute";
+import contactRoutes from "./contactRoutes";
 
 const router = Router();
 
@@ -20,5 +23,8 @@ router.use("/review", reviewRoutes);
 router.use("/booking", bookingRoutes);
 router.use("/subscription", subscriptionRoutes);
 router.use("/upload", uploadRoutes);
+router.use("/blog", blogCategoryRoutes);
+router.use("/blog", blogRoute);
+router.use("/contact", contactRoutes);
 
 export default router;

@@ -2,16 +2,25 @@ import express from "express";
 import {
   addToWishlist,
   removeFromWishlist,
-  getUserWishlist,
+  getWishlistByServiceType,
+  getWishlistByUser,
 } from "../controllers/wishlistController";
 import asyncHandler from "../../utils/asyncHandler";
 
 const router = express.Router();
 
-router.post("/add-wishlist", asyncHandler(addToWishlist));
+router.post("/add-wishlist/:userId", asyncHandler(addToWishlist));
 
-router.delete("/remove-wishlist", asyncHandler(removeFromWishlist));
+router.delete(
+  "/remove-wishlist/:userId/:serviceType/:serviceId",
+  asyncHandler(removeFromWishlist)
+);
 
-router.get("/all-wishlist/:userId", asyncHandler(getUserWishlist));
+router.get(
+  "/all-wishlist/:userId/:serviceType",
+  asyncHandler(getWishlistByServiceType)
+);
+
+router.get("/all-wishlist/:userId", asyncHandler(getWishlistByUser));
 
 export default router;
