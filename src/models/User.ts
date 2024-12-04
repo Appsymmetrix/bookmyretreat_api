@@ -1,8 +1,10 @@
 import mongoose, { Schema, Document } from "mongoose";
+import moment from "moment";
 
 export interface INotification {
   title: string;
   message: string;
+  createdAt: Date;
 }
 
 export interface IUser extends Document {
@@ -27,10 +29,14 @@ export interface IUser extends Document {
   };
 }
 
-const NotificationSchema: Schema = new Schema({
-  title: { type: String, required: true },
-  message: { type: String, required: true },
-});
+const NotificationSchema: Schema = new Schema(
+  {
+    title: { type: String, required: true },
+    message: { type: String, required: true },
+    createdAt: { type: Date, default: Date.now },
+  },
+  { timestamps: true }
+);
 
 const UserSchema: Schema = new Schema(
   {

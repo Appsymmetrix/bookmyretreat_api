@@ -1,15 +1,14 @@
 import express from "express";
-
 import asyncHandler from "../../utils/asyncHandler";
 import {
-  getNotifications,
-  sendAdminMessage,
+  getUserNotifications,
+  sendNotificationToAllUsers,
 } from "../controllers/notificationController";
 
 const router = express.Router();
 
-router.post("/send-notifications", asyncHandler(sendAdminMessage));
+router.post("/send-notifications", asyncHandler(sendNotificationToAllUsers));
 
-router.get("/get-notifications/:userId", asyncHandler(getNotifications));
+router.get("/get-notifications/:userId", asyncHandler(getUserNotifications));
 
 export default router;

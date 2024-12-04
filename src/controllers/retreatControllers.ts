@@ -425,3 +425,29 @@ export const approveRetreat = async (
     });
   }
 };
+
+export const getRetreats = async (req: Request, res: Response) => {
+  try {
+    const retreats = await Retreat.find({}).select("title _id").lean();
+
+    if (!retreats.length) {
+      return res.status(404).json({ message: "No retreats found" });
+    }
+
+    const retreatOptions = retreats.map((retreat) => ({
+      label: retreat.title,
+      value: retreat._id,
+    }));
+
+    return res.status(200).json({
+      message: "Retreats retrieved successfully",
+      data: retreatOptions,
+    });
+  } catch (error) {
+    console.error("Failed to fetch retreats:", error);
+    return res.status(500).json({ message: "Failed to fetch retreats", error });
+  }
+};
+
+
+

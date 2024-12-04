@@ -9,6 +9,7 @@ import {
   getRetreatsByOrganizer,
   getCreatedRetreatsByAdmin,
   approveRetreat,
+  getRetreats,
 } from "../controllers/retreatControllers";
 import { verifyToken, authorizeRole } from "../middleware/authMiddleware";
 
@@ -51,10 +52,12 @@ router.get(
   asyncHandler(getCreatedRetreatsByAdmin)
 );
 router.put(
-  "/approve-retreat/:id", // Using PUT to approve retreat by ID
+  "/approve-retreat/:id",
   // verifyToken,
-  // authorizeRole(["admin"]), // Only admin can approve retreats
+  // authorizeRole(["admin"]),
   asyncHandler(approveRetreat)
 );
+
+router.get("/admin/retreats", asyncHandler(getRetreats));
 
 export default router;
