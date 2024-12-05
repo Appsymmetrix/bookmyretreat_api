@@ -120,11 +120,9 @@ export const retreatSchema = Joi.object({
 });
 
 export const categorySchema = Joi.object({
-  name: Joi.string().min(3).max(50).required().messages({
-    "string.empty": "Category name is required",
-    "string.min": "Category name should have a minimum length of 3",
-    "string.max": "Category name should have a maximum length of 50",
-  }),
+  name: Joi.string().required(),
+  description: Joi.string().required(),
+  imgUrl: Joi.array().items(Joi.string().uri()).required(),
 });
 
 export const filterSchema = Joi.object({

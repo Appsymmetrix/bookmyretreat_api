@@ -167,7 +167,9 @@ export const getAllRetreats = async (
   req: Request,
   res: Response
 ): Promise<Response> => {
-  const { page = 1, limit = 10, categoryId } = req.query;
+  const { page = 1, limit = 10, city, state } = req.query;
+
+  console.log("Query Parameters:", { city, state });
 
   try {
     const parsedLimit = parseInt(limit as string, 10);
@@ -187,9 +189,19 @@ export const getAllRetreats = async (
     const skip = (parsedPage - 1) * parsedLimit;
 
     let filter: any = { isApproved: true };
-    if (categoryId) {
-      filter["category.id"] = categoryId;
+
+    // Check if city is present in the query and handle it
+    if (city && typeof city === "string") {
+      filter.city = { $regex: new RegExp(city, "i") }; // case-insensitive match
     }
+
+    // Check if state is present in the query and handle it
+    if (state && typeof state === "string") {
+      filter.state = { $regex: new RegExp(state, "i") }; // case-insensitive match
+    }
+
+    // Log the constructed filter for debugging
+    console.log("Constructed Filter:", JSON.stringify(filter, null, 2));
 
     const retreats = await Retreat.find(filter)
       .skip(skip)
@@ -200,7 +212,6 @@ export const getAllRetreats = async (
     const totalRetreats = await Retreat.countDocuments(filter);
     const totalPages = Math.ceil(totalRetreats / parsedLimit);
 
-    // Return the filtered data along with pagination information
     return res.status(200).json({
       success: true,
       message: "Retreats fetched successfully",
@@ -448,6 +459,3 @@ export const getRetreats = async (req: Request, res: Response) => {
     return res.status(500).json({ message: "Failed to fetch retreats", error });
   }
 };
-
-
-

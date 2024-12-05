@@ -20,6 +20,7 @@ const upload: Multer = multer({ storage });
 
 const supportedFormats = [
   "image/jpeg",
+  "image/jpg",
   "image/png",
   "image/webp",
   "image/tiff",

@@ -4,6 +4,7 @@ import { bookingValidationSchema } from "../../utils/validation";
 import { generateOrderId } from "../../utils/types";
 import mongoose from "mongoose";
 import { Types } from "mongoose";
+import User from "../models/User";
 
 const isValidObjectId = (id: string) => mongoose.Types.ObjectId.isValid(id);
 
@@ -161,8 +162,6 @@ export const getBookingsByUserId = async (
       },
     ]);
 
-    console.log("Categorized Bookings:", categorizedBookings);
-
     const response = {
       upcoming:
         categorizedBookings.find((c) => c.category === "upcoming")?.bookings ||
@@ -216,9 +215,21 @@ export const cancelBooking = async (
       });
     }
 
+    const user = await User.findById(booking.userId);
+    if (user) {
+      const notification = {
+        title: "Booking Cancelled",
+        message: `Your booking with ID ${bookingId} has been cancelled. Reason: ${cancellationReason}`,
+        createdAt: new Date(),
+      };
+
+      user.notifications.push(notification);
+      await user.save();
+    }
+
     return res.status(200).json({
       success: true,
-      message: "Booking cancelled successfully",
+      message: "Booking cancelled successfully and notification sent.",
       booking,
     });
   } catch (err) {

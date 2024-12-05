@@ -3,15 +3,13 @@ import { categorySchema, filterSchema } from "../../utils/validation";
 import Category from "../models/Category";
 import Popular from "../models/Filter";
 
-// Utility to handle database errors
 const handleDatabaseError = (err: any, res: Response) => {
   console.error(err);
   return res.status(500).json({ message: "Server error", error: err.message });
 };
 
-// Utility to check if category or filter already exists
 const checkExisting = async (model: any, name: string) => {
-  return await model.findOne({ name }).lean(); // Use lean to return plain objects
+  return await model.findOne({ name }).lean();
 };
 
 export const addCategory = async (req: Request, res: Response) => {
@@ -21,14 +19,14 @@ export const addCategory = async (req: Request, res: Response) => {
   }
 
   try {
-    const { name } = req.body;
-    const existingCategory = await checkExisting(Category, name);
+    const { name, description, imgUrl } = req.body;
 
+    const existingCategory = await checkExisting(Category, name);
     if (existingCategory) {
       return res.status(400).json({ message: "Category already exists" });
     }
 
-    const newCategory = new Category({ name });
+    const newCategory = new Category({ name, description, imgUrl });
     const savedCategory = await newCategory.save();
 
     return res.status(201).json({
@@ -36,6 +34,8 @@ export const addCategory = async (req: Request, res: Response) => {
       category: {
         id: savedCategory._id,
         name: savedCategory.name,
+        description: savedCategory.description,
+        imgUrl: savedCategory.imgUrl,
       },
     });
   } catch (error) {
