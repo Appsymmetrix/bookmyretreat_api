@@ -221,6 +221,7 @@ export const cancelBooking = async (
         title: "Booking Cancelled",
         message: `Your booking with ID ${bookingId} has been cancelled. Reason: ${cancellationReason}`,
         createdAt: new Date(),
+        read: false,
       };
 
       user.notifications.push(notification);

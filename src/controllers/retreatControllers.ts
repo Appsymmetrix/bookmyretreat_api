@@ -10,16 +10,16 @@ export const createRetreat = async (
 ): Promise<Response> => {
   const userRole = req?.user?.role as "user" | "organiser" | "admin";
 
-  if (!req.user) {
-    return res.status(401).json({ message: "Unauthorized: No user found." });
-  }
+  // if (!req.user) {
+  //   return res.status(401).json({ message: "Unauthorized: No user found." });
+  // }
 
-  if (!["admin", "organiser"].includes(userRole)) {
-    return res.status(403).json({
-      success: false,
-      message: "Forbidden: You do not have the necessary permissions",
-    });
-  }
+  // if (!["admin", "organiser"].includes(userRole)) {
+  //   return res.status(403).json({
+  //     success: false,
+  //     message: "Forbidden: You do not have the necessary permissions",
+  //   });
+  // }
 
   const { error } = retreatSchema.validate(req.body);
   if (error) {
@@ -80,18 +80,18 @@ export const updateRetreat = async (
   req: Request,
   res: Response
 ): Promise<Response> => {
-  // const userRole = req?.user?.role as "user" | "organiser" | "admin";
+  const userRole = req?.user?.role as "user" | "organiser" | "admin";
 
-  // if (!req.user) {
-  //   return res.status(401).json({ message: "Unauthorized: No user found." });
-  // }
+  if (!req.user) {
+    return res.status(401).json({ message: "Unauthorized: No user found." });
+  }
 
-  // if (!["admin", "organiser"].includes(userRole)) {
-  //   return res.status(403).json({
-  //     success: false,
-  //     message: "Forbidden: You do not have the necessary permissions",
-  //   });
-  // }
+  if (!["admin", "organiser"].includes(userRole)) {
+    return res.status(403).json({
+      success: false,
+      message: "Forbidden: You do not have the necessary permissions",
+    });
+  }
 
   const { error } = retreatSchema.validate(req.body);
   if (error) {
@@ -167,9 +167,7 @@ export const getAllRetreats = async (
   req: Request,
   res: Response
 ): Promise<Response> => {
-  const { page = 1, limit = 10, city, state } = req.query;
-
-  console.log("Query Parameters:", { city, state });
+  const { page = 1, limit = 10, city, categoryId, search_query } = req.query;
 
   try {
     const parsedLimit = parseInt(limit as string, 10);
@@ -190,18 +188,33 @@ export const getAllRetreats = async (
 
     let filter: any = { isApproved: true };
 
-    // Check if city is present in the query and handle it
+    if (search_query && typeof search_query === "string") {
+      if (search_query.length < 2) {
+        return res.status(400).json({
+          success: false,
+          message: "Search query must be at least 2 characters long",
+        });
+      }
+
+      const searchTokens = search_query.split(/\s+/);
+      const searchConditions = searchTokens.map((token) => ({
+        $or: [
+          { title: { $regex: new RegExp(token, "i") } },
+          { "category.name": { $regex: new RegExp(token, "i") } },
+          { city: { $regex: new RegExp(token, "i") } },
+        ],
+      }));
+
+      filter.$and = searchConditions;
+    }
+
     if (city && typeof city === "string") {
-      filter.city = { $regex: new RegExp(city, "i") }; // case-insensitive match
+      filter.city = { $regex: new RegExp(city, "i") };
     }
 
-    // Check if state is present in the query and handle it
-    if (state && typeof state === "string") {
-      filter.state = { $regex: new RegExp(state, "i") }; // case-insensitive match
+    if (categoryId && typeof categoryId === "string") {
+      filter["category.id"] = categoryId;
     }
-
-    // Log the constructed filter for debugging
-    console.log("Constructed Filter:", JSON.stringify(filter, null, 2));
 
     const retreats = await Retreat.find(filter)
       .skip(skip)
