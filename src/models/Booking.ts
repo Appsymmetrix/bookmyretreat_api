@@ -12,7 +12,8 @@ export interface IBooking extends Document {
   accommodation: string;
   totalAmount: number;
   orderId: string;
-  status: "pending" | "upcoming" | "cancelled" | "completed" | "confirm";
+  status: "pending" | "upcoming" | "cancelled" | "completed" | "confirmed";
+  bookingDate?: Date;
   cancellationReason?: string;
 }
 
@@ -32,11 +33,13 @@ const BookingSchema: Schema = new Schema({
   accommodation: { type: String, required: true },
   totalAmount: { type: Number, required: true },
   orderId: { type: String, required: true, unique: true },
+  cancellationReason: { type: String },
   status: {
     type: String,
     enum: ["pending", "upcoming", "cancelled", "completed", "confirmed"],
     default: "pending",
   },
+  bookingDate: { type: Date, default: Date.now },
 });
 
 export default mongoose.model<IBooking>("Booking", BookingSchema);

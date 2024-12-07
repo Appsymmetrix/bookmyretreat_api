@@ -194,6 +194,13 @@ export const cancelBooking = async (
   const { bookingId } = req.params;
   const { cancellationReason } = req.body;
 
+  if (!cancellationReason || cancellationReason.trim() === "") {
+    return res.status(400).json({
+      success: false,
+      message: "Cancellation reason is required.",
+    });
+  }
+
   if (!isValidObjectId(bookingId)) {
     return res.status(400).json({
       success: false,
@@ -242,31 +249,75 @@ export const getAllBookingsForOrganizer = async (
   req: Request,
   res: Response
 ): Promise<Response | void> => {
-  const { retreatId } = req.params;
+  const { organizerId } = req.params;
 
-  if (!isValidObjectId(retreatId)) {
+  if (!isValidObjectId(organizerId)) {
     return res.status(400).json({
       success: false,
-      message: "Invalid Retreat ID",
+      message: "Invalid Organizer ID",
     });
   }
 
   try {
-    const bookings = await Booking.find({ retreatId }).lean();
+    const bookings = await Booking.aggregate([
+      {
+        $lookup: {
+          from: "retreats",
+          localField: "retreatId",
+          foreignField: "_id",
+          as: "retreatDetails",
+        },
+      },
+      { $unwind: "$retreatDetails" },
+      {
+        $match: {
+          "retreatDetails.organizerId": new mongoose.Types.ObjectId(
+            organizerId
+          ),
+        },
+      },
+      {
+        $match: {
+          status: "confirmed",
+        },
+      },
+      {
+        $project: {
+          _id: 1,
+          userId: 1,
+          retreatId: 1,
+          dates: 1,
+          numberOfPeople: 1,
+          personName: 1,
+          accommodation: 1,
+          totalAmount: 1,
+          orderId: 1,
+          status: 1,
+          bookingDate: 1,
+          cancellationReason: 1,
+          "retreatDetails.title": 1,
+        },
+      },
+    ]);
 
     if (!bookings || bookings.length === 0) {
       return res.status(404).json({
         success: false,
-        message: "No bookings found for this retreat",
+        message:
+          "No confirmed bookings found for retreats created by this organizer",
       });
     }
 
     return res.status(200).json({
       success: true,
-      message: "User booking details retrieved successfully",
+      message: "Confirmed bookings retrieved successfully",
       bookings,
     });
-  } catch (err) {
-    return handleDatabaseError(err, res);
+  } catch (err: any) {
+    return res.status(500).json({
+      success: false,
+      message: "An error occurred while fetching bookings",
+      error: err.message,
+    });
   }
 };
