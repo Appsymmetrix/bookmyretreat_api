@@ -259,6 +259,16 @@ export const getAllBookingsForOrganizer = async (
   }
 
   try {
+    // Fetch the organizer details, including the organization name
+    const organizer = await User.findById(organizerId).select("organization");
+
+    if (!organizer || !organizer.organization) {
+      return res.status(404).json({
+        success: false,
+        message: "Organizer not found or organization information is missing",
+      });
+    }
+
     const bookings = await Booking.aggregate([
       {
         $lookup: {
@@ -312,6 +322,7 @@ export const getAllBookingsForOrganizer = async (
       success: true,
       message: "Confirmed bookings retrieved successfully",
       bookings,
+      organization: organizer.organization.name, // Add the organization name here
     });
   } catch (err: any) {
     return res.status(500).json({
