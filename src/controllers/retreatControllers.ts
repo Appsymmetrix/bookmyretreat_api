@@ -10,16 +10,16 @@ export const createRetreat = async (
 ): Promise<Response> => {
   const userRole = req?.user?.role as "user" | "organiser" | "admin";
 
-  // if (!req.user) {
-  //   return res.status(401).json({ message: "Unauthorized: No user found." });
-  // }
+  if (!req.user) {
+    return res.status(401).json({ message: "Unauthorized: No user found." });
+  }
 
-  // if (!["admin", "organiser"].includes(userRole)) {
-  //   return res.status(403).json({
-  //     success: false,
-  //     message: "Forbidden: You do not have the necessary permissions",
-  //   });
-  // }
+  if (!["admin", "organiser"].includes(userRole)) {
+    return res.status(403).json({
+      success: false,
+      message: "Forbidden: You do not have the necessary permissions",
+    });
+  }
 
   const { error } = retreatSchema.validate(req.body);
   if (error) {

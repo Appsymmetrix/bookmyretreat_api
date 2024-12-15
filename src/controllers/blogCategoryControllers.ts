@@ -1,7 +1,10 @@
 import { Request, Response } from "express";
 import { BlogCategory } from "../models/BlogCategory";
 
-export const getBlogCategories = async (req: Request, res: Response): Promise<Response> => {
+export const getBlogCategories = async (
+  req: Request,
+  res: Response
+): Promise<Response> => {
   try {
     const blogCategories = await BlogCategory.find();
     return res.status(200).json(blogCategories);

@@ -74,7 +74,7 @@ export const addPopular = async (req: Request, res: Response) => {
 
 export const getAllCategories = async (req: Request, res: Response) => {
   try {
-    const categories = await Category.find().lean(); // Use lean for better performance
+    const categories = await Category.find().lean();
     if (!categories.length) {
       return res.status(404).json({ message: "No categories found" });
     }
