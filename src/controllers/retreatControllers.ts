@@ -167,7 +167,14 @@ export const getAllRetreats = async (
   req: Request,
   res: Response
 ): Promise<Response> => {
-  const { page = 1, limit = 10, city, categoryId, search_query } = req.query;
+  const {
+    page = 1,
+    limit = 10,
+    city,
+    categoryId,
+    search_query,
+    sortBy,
+  } = req.query;
 
   try {
     const parsedLimit = parseInt(limit as string, 10);
@@ -216,10 +223,17 @@ export const getAllRetreats = async (
       filter["category.id"] = categoryId;
     }
 
+    let sortOption: any = { createdAt: -1 };
+    if (sortBy === "price_asc") {
+      sortOption = { price: 1 };
+    } else if (sortBy === "price_desc") {
+      sortOption = { price: -1 };
+    }
+
     const retreats = await Retreat.find(filter)
       .skip(skip)
       .limit(parsedLimit)
-      .sort({ _id: 1 })
+      .sort(sortOption)
       .lean();
 
     const totalRetreats = await Retreat.countDocuments(filter);

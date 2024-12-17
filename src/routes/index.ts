@@ -11,6 +11,7 @@ import uploadRoutes from "./uploadRoutes";
 import blogCategoryRoutes from "./blogCategoryRoutes";
 import blogRoute from "./blogRoute";
 import contactRoutes from "./contactRoutes";
+import chatRoutes from "./chatRoutes";
 
 const router = Router();
 
@@ -26,5 +27,6 @@ router.use("/upload", uploadRoutes);
 router.use("/blog", blogCategoryRoutes);
 router.use("/blog", blogRoute);
 router.use("/contact", contactRoutes);
+router.use("/chats", chatRoutes);
 
 export default router;

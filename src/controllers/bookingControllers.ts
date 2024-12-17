@@ -5,6 +5,7 @@ import { generateOrderId } from "../../utils/types";
 import mongoose from "mongoose";
 import { Types } from "mongoose";
 import User from "../models/User";
+import Retreat from "../models/RetreatModal";
 
 const isValidObjectId = (id: string) => mongoose.Types.ObjectId.isValid(id);
 
@@ -209,36 +210,63 @@ export const cancelBooking = async (
   }
 
   try {
-    const booking = await Booking.findByIdAndUpdate(
-      bookingId,
-      { status: "cancelled", cancellationReason },
-      { new: true }
-    ).lean();
+    const result = await Booking.aggregate([
+      { $match: { _id: new mongoose.Types.ObjectId(bookingId) } },
+      {
+        $lookup: {
+          from: "retreats",
+          localField: "retreatId",
+          foreignField: "_id",
+          as: "retreatDetails",
+        },
+      },
+      {
+        $unwind: "$retreatDetails",
+      },
+      {
+        $lookup: {
+          from: "users",
+          localField: "userId",
+          foreignField: "_id",
+          as: "userDetails",
+        },
+      },
+      {
+        $unwind: "$userDetails",
+      },
+    ]).exec();
 
-    if (!booking) {
+    if (!result || result.length === 0) {
       return res.status(404).json({
         success: false,
         message: "Booking not found",
       });
     }
 
-    const user = await User.findById(booking.userId);
-    if (user) {
-      const notification = {
-        title: "Booking Cancelled",
-        message: `Your booking with ID ${bookingId} has been cancelled. Reason: ${cancellationReason}`,
-        createdAt: new Date(),
-        read: false,
-      };
+    const booking = result[0];
 
-      user.notifications.push(notification);
-      await user.save();
-    }
+    const updatedBooking = await Booking.findByIdAndUpdate(
+      bookingId,
+      { status: "cancelled", cancellationReason },
+      { new: true }
+    ).lean();
+
+    const notification = {
+      title: "Booking Cancelled",
+      message: `Your booking for ${booking.retreatDetails.title} has been cancelled. Reason: ${cancellationReason}`,
+      createdAt: new Date(),
+      read: false,
+    };
+
+    await User.updateOne(
+      { _id: booking.userId },
+      { $push: { notifications: notification } }
+    );
 
     return res.status(200).json({
       success: true,
       message: "Booking cancelled successfully and notification sent.",
-      booking,
+      booking: updatedBooking,
     });
   } catch (err) {
     return handleDatabaseError(err, res);
@@ -259,7 +287,6 @@ export const getAllBookingsForOrganizer = async (
   }
 
   try {
-    // Fetch the organizer details, including the organization name
     const organizer = await User.findById(organizerId).select("organization");
 
     if (!organizer || !organizer.organization) {
@@ -298,7 +325,7 @@ export const getAllBookingsForOrganizer = async (
           retreatId: 1,
           dates: 1,
           numberOfPeople: 1,
-          personName: 1,
+          personName: 1, // Ensure personName is included here
           accommodation: 1,
           totalAmount: 1,
           orderId: 1,
@@ -322,7 +349,7 @@ export const getAllBookingsForOrganizer = async (
       success: true,
       message: "Confirmed bookings retrieved successfully",
       bookings,
-      organization: organizer.organization.name, // Add the organization name here
+      organization: organizer.organization.name,
     });
   } catch (err: any) {
     return res.status(500).json({

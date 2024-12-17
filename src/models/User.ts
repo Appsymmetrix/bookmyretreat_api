@@ -1,5 +1,4 @@
 import mongoose, { Schema, Document } from "mongoose";
-import moment from "moment";
 
 export interface INotification {
   title: string;
