@@ -219,15 +219,22 @@ export const getAllRetreats = async (
       filter.city = { $regex: new RegExp(city, "i") };
     }
 
-    if (categoryId && typeof categoryId === "string") {
+    if (categoryId && typeof categoryId === "string" && !sortBy) {
       filter["category.id"] = categoryId;
     }
 
-    let sortOption: any = { createdAt: -1 };
-    if (sortBy === "price_asc") {
-      sortOption = { price: 1 };
-    } else if (sortBy === "price_desc") {
-      sortOption = { price: -1 };
+    let sortOption: any = {};
+
+    if (sortBy) {
+      // Apply sorting only if sortBy is provided
+      if (sortBy === "price_asc") {
+        sortOption = { price: 1 };
+      } else if (sortBy === "price_desc") {
+        sortOption = { price: -1 };
+      }
+    } else {
+      // Default sort if sortBy is not provided
+      sortOption = { createdAt: -1 };
     }
 
     const retreats = await Retreat.find(filter)

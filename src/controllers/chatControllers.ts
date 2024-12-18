@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import Chat from "../models/Chat";
 import mongoose from "mongoose";
+import Retreat from "../models/RetreatModal";
 
 export const addMessageToChat = async (req: Request, res: Response) => {
   try {
@@ -133,19 +134,32 @@ export const getChatWithRetreatTitle = async (req: Request, res: Response) => {
 
 export const getChatWithUserName = async (req: Request, res: Response) => {
   try {
-    const { retreatId } = req.params;
+    const { organizerId } = req.params;
 
-    if (!retreatId) {
+    if (!organizerId) {
       return res.status(400).json({
         success: false,
-        message: "retreatId is required.",
+        message: "organizerId is required.",
       });
     }
 
-    const result = await Chat.aggregate([
+    const retreats = await Retreat.find({ organizerId }).select("_id");
+
+    if (retreats.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "No retreats found for the given organizerId.",
+      });
+    }
+
+    const retreatIds = retreats.map(
+      (retreat) => new mongoose.Types.ObjectId(String(retreat._id))
+    );
+
+    const chats = await Chat.aggregate([
       {
         $match: {
-          retreatId: new mongoose.Types.ObjectId(retreatId),
+          retreatId: { $in: retreatIds },
         },
       },
       {
@@ -173,19 +187,22 @@ export const getChatWithUserName = async (req: Request, res: Response) => {
           retreatDetails: 0,
         },
       },
+      {
+        $limit: 100,
+      },
     ]);
 
-    if (!result || result.length === 0) {
+    if (chats.length === 0) {
       return res.status(404).json({
         success: false,
-        message: "No chats found for the given retreatId.",
+        message: "No chats found for the given retreats of the organizerId.",
       });
     }
 
     return res.status(200).json({
       success: true,
       message: "Chat data retrieved successfully.",
-      data: result[0],
+      data: chats,
     });
   } catch (err: any) {
     console.error("Error in getChatWithUserName:", err);

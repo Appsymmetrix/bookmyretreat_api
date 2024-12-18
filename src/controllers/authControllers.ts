@@ -412,3 +412,37 @@ export const resendPasswordResetEmail = async (
     return handleError(res, 500, "Server error");
   }
 };
+
+export const addUserImages = async (req: Request, res: Response) => {
+  try {
+    const userId = req.params.userId;
+    const { imageUrls } = req.body;
+
+    if (
+      !Array.isArray(imageUrls) ||
+      !imageUrls.every((url) => typeof url === "string")
+    ) {
+      return res
+        .status(400)
+        .json({ error: "imageUrls must be an array of strings." });
+    }
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ error: "User not found." });
+    }
+    if (user.role !== "user") {
+      return res.status(403).json({ error: "Only users can add image URLs." });
+    }
+    user.imageUrls = user.imageUrls || [];
+    user.imageUrls.push(...imageUrls);
+    await user.save();
+
+    res.status(200).json({
+      message: "Images added successfully.",
+      imageUrls: user.imageUrls,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Internal server error." });
+  }
+};

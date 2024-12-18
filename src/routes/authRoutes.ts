@@ -10,6 +10,7 @@ import {
   verifyEmail,
   resendVerificationEmail,
   resendPasswordResetEmail,
+  addUserImages,
 } from "../controllers/authControllers";
 import asyncHandler from "../../utils/asyncHandler";
 
@@ -18,6 +19,8 @@ const router = express.Router();
 router.post("/register", asyncHandler(registerUser));
 router.post("/verify-email", asyncHandler(verifyEmail));
 router.post("/login", asyncHandler(loginUser));
+router.post("/add-image/:userId", asyncHandler(addUserImages));
+
 router.post(
   "/resend-verification-email",
   asyncHandler(resendVerificationEmail)

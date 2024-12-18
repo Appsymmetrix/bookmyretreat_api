@@ -22,6 +22,7 @@ export const getAdminDashboard = async (
         $project: {
           name: 1,
           email: 1,
+          imageUrls: 1,
           totalBookings: { $size: { $ifNull: ["$bookings", []] } },
           upcomingBookings: {
             $size: {
@@ -42,6 +43,7 @@ export const getAdminDashboard = async (
       { $limit: 100 },
     ]).exec();
 
+    // Fetch Organizers
     const organizersData = await User.aggregate([
       { $match: { role: "organiser" } },
       {
@@ -64,6 +66,7 @@ export const getAdminDashboard = async (
         $project: {
           email: 1,
           organizationName: "$organization.name",
+          organizationImageUrl: { $ifNull: ["$organization.imageUrl", ""] },
           retreatsCount: { $size: "$retreats" },
           totalReviews: {
             $sum: {

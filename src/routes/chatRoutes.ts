@@ -12,6 +12,6 @@ router.post("/post-chat", asyncHandler(addMessageToChat));
 
 router.get("/get-chat/:userId", asyncHandler(getChatWithRetreatTitle));
 
-router.get("/get-chat-users/:retreatId", asyncHandler(getChatWithUserName));
+router.get("/get-chat-users/:organizerId", asyncHandler(getChatWithUserName));
 
 export default router;

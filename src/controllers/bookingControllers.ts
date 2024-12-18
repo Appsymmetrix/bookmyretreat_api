@@ -325,7 +325,7 @@ export const getAllBookingsForOrganizer = async (
           retreatId: 1,
           dates: 1,
           numberOfPeople: 1,
-          personName: 1, // Ensure personName is included here
+          personName: 1,
           accommodation: 1,
           totalAmount: 1,
           orderId: 1,

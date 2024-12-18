@@ -22,6 +22,7 @@ export interface IUser extends Document {
   verificationCode?: string;
   verificationCodeExpires?: Date;
   isNewUser: boolean;
+  imageUrls?: string[];
   organization?: {
     name: string;
     description?: string;
@@ -70,12 +71,17 @@ const UserSchema: Schema = new Schema(
         return this.role === "user";
       },
     },
-
     role: {
       type: String,
       required: true,
       enum: ["user", "organiser", "admin"],
       default: "user",
+    },
+    imageUrls: {
+      type: [String],
+      default: function (this: IUser) {
+        return this.role === "user" ? [] : null;
+      },
     },
     notifications: {
       type: [NotificationSchema],
