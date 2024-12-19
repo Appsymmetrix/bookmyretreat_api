@@ -220,7 +220,7 @@ export const getAllRetreats = async (
     }
 
     if (categoryId && typeof categoryId === "string") {
-      filter["category.id"] = categoryId;
+      filter["category"] = categoryId;
     }
 
     let sortOption: any = {};
