@@ -63,7 +63,7 @@ export const retreatSchema = Joi.object({
   price: Joi.number().required(),
   organizerName: Joi.string().required(),
   organizerContact: Joi.string().required(),
-  retreatMonths: Joi.string().required(),
+  retreatMonths: Joi.string().optional().allow(""),
   organizerId: Joi.string().hex().length(24).allow(null),
   daysOfRetreat: Joi.string().required(),
   rooms: Joi.array()

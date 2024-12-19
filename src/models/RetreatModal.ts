@@ -74,7 +74,7 @@ const RetreatSchema: Schema = new Schema(
     },
     organizerName: { type: String, required: true },
     organizerContact: { type: String, required: true },
-    retreatMonths: { type: String, required: true },
+    retreatMonths: { type: String, default: "" },
     daysOfRetreat: { type: String, required: true },
     rooms: [RoomSchema],
     teachers: [TeacherSchema],
