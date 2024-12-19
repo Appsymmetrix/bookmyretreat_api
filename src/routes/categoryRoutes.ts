@@ -5,6 +5,7 @@ import {
   addPopular,
   getAllCategories,
   getPopular,
+  updateCategory,
 } from "../controllers/categoryControllers";
 
 const router = express.Router();
@@ -16,5 +17,7 @@ router.post("/add-popular", asyncHandler(addPopular));
 router.get("/all-category", asyncHandler(getAllCategories));
 
 router.get("/all-popular", asyncHandler(getPopular));
+
+router.put("/categories/:id", asyncHandler(updateCategory));
 
 export default router;

@@ -1,6 +1,6 @@
-import mongoose, { Document, Schema, ObjectId } from "mongoose";
+import mongoose, { Document, Schema, ObjectId, Types } from "mongoose";
 import Organizer from "./Organizer";
-import Category from "./Category"; // Ensure to import Category model
+import Category, { ICategory } from "./Category"; // Ensure to import Category model
 import Popular from "./Filter";
 
 interface IRoom {
@@ -40,8 +40,8 @@ export interface IRetreat extends Document {
     startDate: Date;
     endDate: Date;
   };
-  category: { id: ObjectId; name: string }[]; // Referencing category
-  popular: { id: ObjectId; name: string }[]; // Referencing popular
+  category: Types.ObjectId | ICategory;
+  popular: { id: ObjectId; name: string }[];
   isWishlisted: boolean;
   createdAt?: Date;
   updatedAt?: Date;
@@ -102,12 +102,11 @@ const RetreatSchema: Schema = new Schema(
       startDate: { type: Date, required: true },
       endDate: { type: Date, required: true },
     },
-    category: [
-      {
-        id: { type: Schema.Types.ObjectId, ref: Category },
-        name: { type: String, required: true },
-      },
-    ],
+    category: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Category",
+      required: true,
+    },
     popular: [
       {
         id: { type: Schema.Types.ObjectId, ref: Popular },

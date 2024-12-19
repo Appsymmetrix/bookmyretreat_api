@@ -219,21 +219,19 @@ export const getAllRetreats = async (
       filter.city = { $regex: new RegExp(city, "i") };
     }
 
-    if (categoryId && typeof categoryId === "string" && !sortBy) {
+    if (categoryId && typeof categoryId === "string") {
       filter["category.id"] = categoryId;
     }
 
     let sortOption: any = {};
 
     if (sortBy) {
-      // Apply sorting only if sortBy is provided
       if (sortBy === "price_asc") {
         sortOption = { price: 1 };
       } else if (sortBy === "price_desc") {
         sortOption = { price: -1 };
       }
     } else {
-      // Default sort if sortBy is not provided
       sortOption = { createdAt: -1 };
     }
 
@@ -241,6 +239,7 @@ export const getAllRetreats = async (
       .skip(skip)
       .limit(parsedLimit)
       .sort(sortOption)
+      .populate("category")
       .lean();
 
     const totalRetreats = await Retreat.countDocuments(filter);
@@ -272,13 +271,17 @@ export const getRetreatById = async (
   const { id } = req.params;
 
   try {
-    const retreat = await Retreat.findById(id).lean();
+    const retreat = await Retreat.findById(id).populate("category").lean();
 
     if (!retreat) {
       return res
         .status(404)
         .json({ success: false, message: "Retreat not found" });
     }
+
+    const categories = Array.isArray(retreat.category)
+      ? retreat.category
+      : [retreat.category];
 
     const reviews = await Review.aggregate([
       { $match: { retreatId: new mongoose.Types.ObjectId(id) } },
@@ -288,17 +291,12 @@ export const getRetreatById = async (
 
     const averageRating = reviews.length > 0 ? reviews[0].averageRating : 0;
 
-    if (retreat.category) {
-      retreat.category = retreat.category.map((cat: any) => {
-        const { _id, ...categoryWithoutId } = cat;
-        return categoryWithoutId;
-      });
-    }
     return res.status(200).json({
       success: true,
       message: "Retreat fetched successfully",
       data: {
         ...retreat,
+        category: categories,
         averageRating,
       },
     });

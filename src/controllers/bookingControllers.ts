@@ -58,6 +58,21 @@ export const createBooking = async (
     });
 
     await newBooking.save();
+
+    const retreat = await Retreat.findById(retreatId).select("title");
+
+    const notification = {
+      title: "Booking Confirmed",
+      message: `Your booking for ${retreat?.title} has been confirmed successfully!`,
+      createdAt: new Date(),
+      read: false,
+    };
+
+    await User.updateOne(
+      { _id: userId },
+      { $push: { notifications: notification } }
+    );
+
     return res.status(201).json({
       success: true,
       message: "Booking confirmed successfully",

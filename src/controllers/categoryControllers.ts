@@ -103,3 +103,49 @@ export const getPopular = async (req: Request, res: Response) => {
     return handleDatabaseError(error, res);
   }
 };
+
+export const updateCategory = async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const { name, description, imgUrl } = req.body;
+
+  if (!name && !description && !imgUrl) {
+    return res.status(400).json({
+      message:
+        "At least one field (name, description, or imgUrl) must be provided",
+    });
+  }
+
+  try {
+    const existingCategory = await Category.findById(id);
+    if (!existingCategory) {
+      return res.status(404).json({ message: "Category not found" });
+    }
+
+    const updateData: Partial<{
+      name: string;
+      description: string;
+      imgUrl: string[];
+    }> = {};
+
+    if (name) updateData.name = name;
+    if (description) updateData.description = description;
+    if (imgUrl) updateData.imgUrl = imgUrl;
+
+    const updatedCategory = await Category.findByIdAndUpdate(id, updateData, {
+      new: true,
+      runValidators: true,
+    });
+
+    return res.status(200).json({
+      message: "Category updated successfully",
+      category: {
+        id: updatedCategory?._id,
+        name: updatedCategory?.name,
+        description: updatedCategory?.description,
+        imgUrl: updatedCategory?.imgUrl,
+      },
+    });
+  } catch (error) {
+    return handleDatabaseError(error, res);
+  }
+};
