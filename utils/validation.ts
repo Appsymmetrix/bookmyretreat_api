@@ -64,7 +64,7 @@ export const retreatSchema = Joi.object({
   organizerName: Joi.string().required(),
   organizerContact: Joi.string().required(),
   retreatMonths: Joi.string().required(),
-  organizerId: Joi.string().required(),
+  organizerId: Joi.string().hex().length(24).allow(null),
   daysOfRetreat: Joi.string().required(),
   rooms: Joi.array()
     .items(
@@ -80,7 +80,7 @@ export const retreatSchema = Joi.object({
     Joi.object({
       name: Joi.string().required(),
       description: Joi.string().required(),
-      image: Joi.string().optional().allow(null, ""), // Make image optional
+      image: Joi.string().optional().allow(null, ""),
     })
   ),
   city: Joi.string().required(),
@@ -103,12 +103,7 @@ export const retreatSchema = Joi.object({
     startDate: Joi.date().required(),
     endDate: Joi.date().required(),
   }).required(),
-  category: Joi.array().items(
-    Joi.object({
-      id: Joi.string().required(),
-      name: Joi.string().required(),
-    })
-  ),
+  category: Joi.string().hex().length(24).required(),
   popular: Joi.array().items(
     Joi.object({
       id: Joi.string().required(),
@@ -116,7 +111,8 @@ export const retreatSchema = Joi.object({
     })
   ),
   isWishlisted: Joi.boolean(),
-  isApproved: Joi.boolean(),
+  isApproved: Joi.boolean().optional(),
+  isCreatedByAdmin: Joi.boolean().optional(),
 });
 
 export const categorySchema = Joi.object({

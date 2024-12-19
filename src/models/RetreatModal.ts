@@ -66,7 +66,12 @@ const RetreatSchema: Schema = new Schema(
     title: { type: String, required: true },
     description: { type: String, required: true },
     price: { type: Number, required: true },
-    organizerId: { type: Schema.Types.ObjectId, ref: Organizer },
+    organizerId: {
+      type: Schema.Types.ObjectId,
+      ref: Organizer,
+      required: false,
+      default: null,
+    },
     organizerName: { type: String, required: true },
     organizerContact: { type: String, required: true },
     retreatMonths: { type: String, required: true },
@@ -115,6 +120,7 @@ const RetreatSchema: Schema = new Schema(
     ],
     isWishlisted: { type: Boolean, default: false },
     isApproved: { type: Boolean, default: false },
+    isCreatedByAdmin: { type: Boolean, default: false },
   },
   { timestamps: true }
 );

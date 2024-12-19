@@ -35,12 +35,12 @@ export const createRetreat = async (
   }
 
   try {
-    const { title, organizerId, teachers } = req.body;
+    const { title, organizerId, teachers, isCreatedByAdmin } = req.body;
 
-    if (!organizerId) {
+    if (!organizerId && !isCreatedByAdmin) {
       return res.status(400).json({
         success: false,
-        message: "Organizer ID is required",
+        message: "Organizer ID or Admin creation flag is required",
       });
     }
 
@@ -58,11 +58,18 @@ export const createRetreat = async (
       });
     }
 
-    const newRetreat = new Retreat({
+    const retreatData: any = {
       ...req.body,
       teachers: updatedTeachers,
-    });
+      isCreatedByAdmin: isCreatedByAdmin || false,
+    };
 
+    if (isCreatedByAdmin) {
+      retreatData.isApproved = true;
+      retreatData.organizerId = null;
+    }
+
+    const newRetreat = new Retreat(retreatData);
     await newRetreat.save();
 
     return res.status(201).json({
@@ -239,7 +246,7 @@ export const getAllRetreats = async (
       .skip(skip)
       .limit(parsedLimit)
       .sort(sortOption)
-      .populate("category")
+      .populate("category", "_id name")
       .lean();
 
     const totalRetreats = await Retreat.countDocuments(filter);
