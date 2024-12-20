@@ -62,7 +62,6 @@ export const createBooking = async (
     const retreat = await Retreat.findById(retreatId).select("title");
 
     const notification = {
-      title: "Booking Confirmed",
       message: `Your booking for ${retreat?.title} has been confirmed successfully!`,
       createdAt: new Date(),
       read: false,
@@ -113,7 +112,20 @@ export const getBookingsByUserId = async (
         $unwind: { path: "$retreatDetails", preserveNullAndEmptyArrays: true },
       },
       {
+        $lookup: {
+          from: "users",
+          localField: "userId",
+          foreignField: "_id",
+          as: "userDetails",
+        },
+      },
+      {
+        $unwind: { path: "$userDetails", preserveNullAndEmptyArrays: true },
+      },
+      {
         $addFields: {
+          personName: "$userDetails.name",
+          mobileNumber: "$userDetails.mobileNumber",
           category: {
             $switch: {
               branches: [
@@ -165,6 +177,8 @@ export const getBookingsByUserId = async (
               totalAmount: "$totalAmount",
               status: "$status",
               orderId: "$orderId",
+              personName: "$personName",
+              mobileNumber: "$mobileNumber",
             },
           },
         },
@@ -267,7 +281,6 @@ export const cancelBooking = async (
     ).lean();
 
     const notification = {
-      title: "Booking Cancelled",
       message: `Your booking for ${booking.retreatDetails.title} has been cancelled. Reason: ${cancellationReason}`,
       createdAt: new Date(),
       read: false,

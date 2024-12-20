@@ -1,7 +1,6 @@
 import mongoose, { Schema, Document } from "mongoose";
 
 export interface INotification {
-  title: string;
   message: string;
   createdAt: Date;
   read: boolean;
@@ -32,7 +31,6 @@ export interface IUser extends Document {
 
 const NotificationSchema: Schema = new Schema(
   {
-    title: { type: String, required: true },
     message: { type: String, required: true },
     createdAt: { type: Date, default: Date.now },
     read: { type: Boolean, default: false },

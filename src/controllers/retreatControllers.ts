@@ -278,7 +278,9 @@ export const getRetreatById = async (
   const { id } = req.params;
 
   try {
-    const retreat = await Retreat.findById(id).populate("category","_id name").lean();
+    const retreat = await Retreat.findById(id)
+      .populate("category", "_id name")
+      .lean();
 
     if (!retreat) {
       return res

@@ -1,6 +1,6 @@
 import mongoose, { Document, Schema, ObjectId, Types } from "mongoose";
 import Organizer from "./Organizer";
-import Category, { ICategory } from "./Category"; // Ensure to import Category model
+import Category, { ICategory } from "./Category";
 import Popular from "./Filter";
 
 interface IRoom {
@@ -8,6 +8,7 @@ interface IRoom {
   numberOfRooms: number;
   peopleAllowed: number;
   roomPrice: number;
+  imageUrls: string[];
 }
 
 export interface IRetreat extends Document {
@@ -48,17 +49,18 @@ export interface IRetreat extends Document {
   isApproved: boolean;
 }
 
+const TeacherSchema: Schema = new Schema({
+  name: { type: String, required: true },
+  description: { type: String, required: true },
+  image: { type: String, required: false },
+});
+
 const RoomSchema: Schema = new Schema({
   type: { type: String, required: true },
   numberOfRooms: { type: Number, required: true },
   peopleAllowed: { type: Number, required: true },
   roomPrice: { type: Number, required: true },
-});
-
-const TeacherSchema: Schema = new Schema({
-  name: { type: String, required: true },
-  description: { type: String, required: true },
-  image: { type: String, required: false },
+  imageUrls: [{ type: String, required: true }],
 });
 
 const RetreatSchema: Schema = new Schema(
