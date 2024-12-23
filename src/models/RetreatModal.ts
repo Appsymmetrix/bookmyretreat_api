@@ -11,6 +11,11 @@ interface IRoom {
   imageUrls: string[];
 }
 
+interface IFood {
+  mealName: string;
+  description: string;
+}
+
 export interface IRetreat extends Document {
   title: string;
   description: string;
@@ -21,6 +26,7 @@ export interface IRetreat extends Document {
   retreatMonths: string;
   daysOfRetreat: string;
   rooms: IRoom[];
+  foodDetails: IFood[]; 
   city: string;
   state: string;
   country: string;
@@ -48,6 +54,11 @@ export interface IRetreat extends Document {
   updatedAt?: Date;
   isApproved: boolean;
 }
+
+const FoodSchema: Schema = new Schema({
+  mealName: { type: String, required: true },
+  description: { type: String, required: true },
+});
 
 const TeacherSchema: Schema = new Schema({
   name: { type: String, required: true },
@@ -80,6 +91,7 @@ const RetreatSchema: Schema = new Schema(
     daysOfRetreat: { type: String, required: true },
     rooms: [RoomSchema],
     teachers: [TeacherSchema],
+    foodDetails: [FoodSchema],
     city: { type: String, required: true },
     state: { type: String, required: true },
     country: { type: String, required: true },

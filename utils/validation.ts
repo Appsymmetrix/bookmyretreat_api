@@ -84,6 +84,14 @@ export const retreatSchema = Joi.object({
       image: Joi.string().optional().allow(null, ""),
     })
   ),
+  foodDetails: Joi.array()
+    .items(
+      Joi.object({
+        mealName: Joi.string().required(),
+        description: Joi.string().required(),
+      })
+    )
+    .optional(),
   city: Joi.string().required(),
   state: Joi.string().required(),
   country: Joi.string().required(),
@@ -147,14 +155,36 @@ export const bookingValidationSchema = Joi.object({
   dates: Joi.object({
     start: Joi.date().required().label("Start date"),
     end: Joi.date().required().label("End date"),
-  }).required(),
+  })
+    .required()
+    .label("Dates"),
   numberOfPeople: Joi.number()
     .integer()
     .min(1)
     .required()
     .label("Number of People"),
   personName: Joi.string().min(2).max(50).required().label("Person Name"),
-  accommodation: Joi.string().required().label("Accommodation"),
+  accommodation: Joi.object({
+    type: Joi.string().required().label("Accommodation Type"),
+    numberOfRooms: Joi.number()
+      .integer()
+      .min(1)
+      .required()
+      .label("Number of Rooms"),
+    peopleAllowed: Joi.number()
+      .integer()
+      .min(1)
+      .required()
+      .label("People Allowed"),
+    roomPrice: Joi.number().min(0).required().label("Room Price"),
+    imageUrls: Joi.array()
+      .items(Joi.string().uri())
+      .min(1)
+      .required()
+      .label("Image URLs"),
+  })
+    .required()
+    .label("Accommodation"),
   totalAmount: Joi.number().min(0).required().label("Total Amount"),
   status: Joi.string()
     .valid("pending", "upcoming", "cancelled", "completed", "confirmed")

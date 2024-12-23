@@ -96,8 +96,6 @@ export const getBookingsByUserId = async (
   }
 
   try {
-    const currentDate = new Date();
-
     const categorizedBookings = await Booking.aggregate([
       { $match: { userId: new Types.ObjectId(userId) } },
       {
@@ -134,21 +132,12 @@ export const getBookingsByUserId = async (
                   then: "canceled",
                 },
                 {
-                  case: {
-                    $and: [
-                      { $eq: ["$status", "confirmed"] },
-                      { $gte: ["$dates.start", currentDate] },
-                    ],
-                  },
-                  then: "upcoming",
-                },
-                {
                   case: { $eq: ["$status", "completed"] },
                   then: "completed",
                 },
                 {
                   case: { $eq: ["$status", "confirmed"] },
-                  then: "confirmed",
+                  then: "upcoming",
                 },
                 {
                   case: {
@@ -195,9 +184,6 @@ export const getBookingsByUserId = async (
     const response = {
       upcoming:
         categorizedBookings.find((c) => c.category === "upcoming")?.bookings ||
-        [],
-      confirmed:
-        categorizedBookings.find((c) => c.category === "confirmed")?.bookings ||
         [],
       completed:
         categorizedBookings.find((c) => c.category === "completed")?.bookings ||
@@ -324,7 +310,7 @@ export const getAllBookingsForOrganizer = async (
       });
     }
 
-    const bookings = await Booking.aggregate([
+    const categorizedBookings = await Booking.aggregate([
       {
         $lookup: {
           from: "retreats",
@@ -342,41 +328,105 @@ export const getAllBookingsForOrganizer = async (
         },
       },
       {
-        $match: {
-          status: "confirmed",
+        $lookup: {
+          from: "users", // Lookup to the User collection
+          localField: "userId", // Assuming `userId` is the field in the Booking collection
+          foreignField: "_id", // Matching the `_id` field in the User collection
+          as: "userDetails", // The resulting array will be stored in "userDetails"
+        },
+      },
+      { $unwind: "$userDetails" }, // Unwind to access the user details
+      {
+        $facet: {
+          confirmed: [
+            { $match: { status: "confirmed" } },
+            {
+              $project: {
+                _id: 1,
+                retreatId: 1,
+                retreatTitle: "$retreatDetails.title",
+                retreatAddress: "$retreatDetails.fullAddress",
+                dates: 1,
+                numberOfPeople: 1,
+                accommodation: 1,
+                totalAmount: 1,
+                status: 1,
+                orderId: 1,
+                personName: 1,
+                mobileNumber: "$userDetails.mobileNumber", // Extracting mobileNumber from userDetails
+                dateOfBooking: 1,
+              },
+            },
+          ],
+          completed: [
+            { $match: { status: "completed" } },
+            {
+              $project: {
+                _id: 1,
+                retreatId: 1,
+                retreatTitle: "$retreatDetails.title",
+                retreatAddress: "$retreatDetails.fullAddress",
+                dates: 1,
+                numberOfPeople: 1,
+                accommodation: 1,
+                totalAmount: 1,
+                status: 1,
+                orderId: 1,
+                personName: 1,
+                mobileNumber: "$userDetails.mobileNumber", // Extracting mobileNumber from userDetails
+                dateOfBooking: 1,
+              },
+            },
+          ],
+          cancelled: [
+            { $match: { status: "cancelled" } },
+            {
+              $project: {
+                _id: 1,
+                retreatId: 1,
+                retreatTitle: "$retreatDetails.title",
+                retreatAddress: "$retreatDetails.fullAddress",
+                dates: 1,
+                numberOfPeople: 1,
+                accommodation: 1,
+                totalAmount: 1,
+                status: 1,
+                orderId: 1,
+                personName: 1,
+                mobileNumber: "$userDetails.mobileNumber", // Extracting mobileNumber from userDetails
+                dateOfBooking: 1,
+              },
+            },
+          ],
         },
       },
       {
         $project: {
-          _id: 1,
-          userId: 1,
-          retreatId: 1,
-          dates: 1,
-          numberOfPeople: 1,
-          personName: 1,
-          accommodation: 1,
-          totalAmount: 1,
-          orderId: 1,
-          status: 1,
-          bookingDate: 1,
-          cancellationReason: 1,
-          "retreatDetails.title": 1,
+          confirmed: 1,
+          completed: 1,
+          cancelled: 1,
+          totalBookings: {
+            $concatArrays: [
+              { $ifNull: ["$confirmed", []] },
+              { $ifNull: ["$completed", []] },
+              { $ifNull: ["$cancelled", []] },
+            ],
+          },
         },
       },
     ]);
 
-    if (!bookings || bookings.length === 0) {
+    if (!categorizedBookings || categorizedBookings.length === 0) {
       return res.status(404).json({
         success: false,
-        message:
-          "No confirmed bookings found for retreats created by this organizer",
+        message: "No bookings found for retreats created by this organizer",
       });
     }
 
     return res.status(200).json({
       success: true,
-      message: "Confirmed bookings retrieved successfully",
-      bookings,
+      message: "Bookings categorized successfully",
+      data: categorizedBookings[0],
       organization: organizer.organization.name,
     });
   } catch (err: any) {
@@ -385,5 +435,380 @@ export const getAllBookingsForOrganizer = async (
       message: "An error occurred while fetching bookings",
       error: err.message,
     });
+  }
+};
+
+export const getAllBookingsForOrganizerSummary = async (
+  req: Request,
+  res: Response
+): Promise<Response | void> => {
+  try {
+    const { organizerId } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(organizerId)) {
+      return res.status(400).json({ error: "Invalid organizerId" });
+    }
+
+    const organizer = await User.findOne({
+      _id: organizerId,
+      role: "organiser",
+    });
+    if (!organizer) {
+      return res
+        .status(404)
+        .json({ error: "Organizer not found or not an organiser" });
+    }
+
+    const retreats = await Retreat.find({
+      organizerId: new mongoose.Types.ObjectId(organizerId),
+    });
+
+    const retreatIds = retreats.map((retreat) => retreat._id);
+
+    const bookingSummary = await Booking.aggregate([
+      { $match: { retreatId: { $in: retreatIds } } },
+      {
+        $group: {
+          _id: null,
+          totalBookings: { $sum: 1 },
+          newBookings: {
+            $sum: { $cond: [{ $eq: ["$status", "confirmed"] }, 1, 0] },
+          },
+          cancelled: {
+            $sum: { $cond: [{ $eq: ["$status", "cancelled"] }, 1, 0] },
+          },
+          completed: {
+            $sum: { $cond: [{ $eq: ["$status", "completed"] }, 1, 0] },
+          },
+          revenue: { $sum: "$totalAmount" },
+        },
+      },
+    ]);
+
+    const summary = bookingSummary[0] || {
+      totalBookings: 0,
+      newBookings: 0,
+      cancelled: 0,
+      completed: 0,
+      revenue: 0,
+    };
+
+    return res.status(200).json({
+      organizerId: organizer._id,
+      organizerName: organizer.name,
+      organization: organizer.organization
+        ? {
+            name: organizer.organization.name,
+            imageUrl: organizer.organization.imageUrl,
+          }
+        : null,
+      totalRetreats: retreats.length,
+      retreats: [
+        retreats.map((retreat) => ({
+          retreatId: retreat._id,
+          title: retreat.title,
+          ...summary,
+        })),
+      ],
+    });
+  } catch (error) {
+    console.error("Error in getAllBookingsForOrganizer:", error);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+export const getBookingsForRetreat = async (
+  req: Request,
+  res: Response
+): Promise<Response | void> => {
+  const { organizerId, retreatId } = req.params;
+
+  if (!isValidObjectId(organizerId) || !isValidObjectId(retreatId)) {
+    return res.status(400).json({
+      success: false,
+      message: "Invalid Organizer ID or Retreat ID",
+    });
+  }
+
+  try {
+    const organizer = await User.findById(organizerId).select("organization");
+
+    if (!organizer || !organizer.organization) {
+      return res.status(404).json({
+        success: false,
+        message: "Organizer not found or organization information is missing",
+      });
+    }
+
+    const categorizedBookings = await Booking.aggregate([
+      {
+        $lookup: {
+          from: "retreats",
+          localField: "retreatId",
+          foreignField: "_id",
+          as: "retreatDetails",
+        },
+      },
+      { $unwind: "$retreatDetails" },
+      {
+        $match: {
+          "retreatDetails.organizerId": new mongoose.Types.ObjectId(
+            organizerId
+          ),
+          "retreatDetails._id": new mongoose.Types.ObjectId(retreatId),
+        },
+      },
+      {
+        $lookup: {
+          from: "users", // Lookup to the User collection
+          localField: "userId", // Assuming `userId` is the field in the Booking collection
+          foreignField: "_id", // Matching the `_id` field in the User collection
+          as: "userDetails", // The resulting array will be stored in "userDetails"
+        },
+      },
+      { $unwind: "$userDetails" }, // Unwind to access the user details
+      {
+        $facet: {
+          newBooking: [
+            { $match: { status: "confirmed" } },
+            {
+              $project: {
+                _id: 1,
+                retreatId: 1,
+                retreatTitle: "$retreatDetails.title",
+                retreatAddress: "$retreatDetails.fullAddress",
+                dates: 1,
+                numberOfPeople: 1,
+                accommodation: 1,
+                totalAmount: 1,
+                status: 1,
+                orderId: 1,
+                personName: 1,
+                mobileNumber: "$userDetails.mobileNumber", // Extracting mobileNumber from userDetails
+                dateOfBooking: 1,
+              },
+            },
+          ],
+          completed: [
+            { $match: { status: "completed" } },
+            {
+              $project: {
+                _id: 1,
+                retreatId: 1,
+                retreatTitle: "$retreatDetails.title",
+                retreatAddress: "$retreatDetails.fullAddress",
+                dates: 1,
+                numberOfPeople: 1,
+                accommodation: 1,
+                totalAmount: 1,
+                status: 1,
+                orderId: 1,
+                personName: 1,
+                mobileNumber: "$userDetails.mobileNumber", // Extracting mobileNumber from userDetails
+                dateOfBooking: 1,
+              },
+            },
+          ],
+          cancelled: [
+            { $match: { status: "cancelled" } },
+            {
+              $project: {
+                _id: 1,
+                retreatId: 1,
+                retreatTitle: "$retreatDetails.title",
+                retreatAddress: "$retreatDetails.fullAddress",
+                dates: 1,
+                numberOfPeople: 1,
+                accommodation: 1,
+                totalAmount: 1,
+                status: 1,
+                orderId: 1,
+                personName: 1,
+                mobileNumber: "$userDetails.mobileNumber",
+                dateOfBooking: 1,
+              },
+            },
+          ],
+        },
+      },
+      {
+        $project: {
+          newBooking: "$newBooking",
+          completed: 1,
+          cancelled: 1,
+          totalBookings: {
+            $concatArrays: [
+              { $ifNull: ["$newBooking", []] },
+              { $ifNull: ["$completed", []] },
+              { $ifNull: ["$cancelled", []] },
+            ],
+          },
+        },
+      },
+    ]);
+
+    if (!categorizedBookings || categorizedBookings.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "No bookings found for this retreat",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Bookings categorized successfully",
+      data: categorizedBookings[0],
+      organization: organizer.organization.name,
+    });
+  } catch (err: any) {
+    return res.status(500).json({
+      success: false,
+      message: "An error occurred while fetching bookings",
+      error: err.message,
+    });
+  }
+};
+
+export const getMonthlyRevenue = async (
+  req: Request,
+  res: Response
+): Promise<Response | void> => {
+  try {
+    const { organiserId } = req.params;
+
+    if (!organiserId) {
+      return res.status(400).json({ error: "organiserId is required." });
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(organiserId as string)) {
+      return res.status(400).json({ error: "Invalid organiserId format." });
+    }
+
+    const monthNames = [
+      "January",
+      "February",
+      "March",
+      "April",
+      "May",
+      "June",
+      "July",
+      "August",
+      "September",
+      "October",
+      "November",
+      "December",
+    ];
+
+    const revenueData = monthNames.map((month) => ({
+      monthName: month,
+      totalRevenue: 0,
+    }));
+
+    const monthlyRevenue = await Booking.aggregate([
+      {
+        $lookup: {
+          from: "retreats",
+          localField: "retreatId",
+          foreignField: "_id",
+          as: "retreat",
+        },
+      },
+      {
+        $unwind: "$retreat",
+      },
+      {
+        $match: {
+          "retreat.organizerId": new mongoose.Types.ObjectId(organiserId),
+        },
+      },
+      {
+        $lookup: {
+          from: "users",
+          localField: "userId",
+          foreignField: "_id",
+          as: "user",
+        },
+      },
+      {
+        $unwind: "$user",
+      },
+      {
+        $addFields: {
+          month: { $month: "$dateOfBooking" },
+        },
+      },
+      {
+        $group: {
+          _id: "$month",
+          totalRevenue: { $sum: "$totalAmount" },
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          month: "$_id",
+          totalRevenue: 1,
+        },
+      },
+    ]);
+
+    const paymentDetails = await Booking.aggregate([
+      {
+        $lookup: {
+          from: "retreats",
+          localField: "retreatId",
+          foreignField: "_id",
+          as: "retreat",
+        },
+      },
+      {
+        $unwind: "$retreat",
+      },
+      {
+        $match: {
+          "retreat.organizerId": new mongoose.Types.ObjectId(organiserId),
+        },
+      },
+      {
+        $lookup: {
+          from: "users",
+          localField: "userId",
+          foreignField: "_id",
+          as: "user",
+        },
+      },
+      {
+        $unwind: "$user",
+      },
+      {
+        $project: {
+          orderId: 1,
+          paymentVia: "credit card",
+          amount: "$totalAmount",
+          bookingDate: "$dateOfBooking",
+          name: "$user.name",
+          imgUrls: "$user.imageUrls",
+        },
+      },
+    ]);
+
+    monthlyRevenue.forEach(({ month, totalRevenue }) => {
+      revenueData[month - 1].totalRevenue = totalRevenue;
+    });
+
+    const totalRevenueAllMonths = monthlyRevenue.reduce(
+      (total, { totalRevenue }) => total + totalRevenue,
+      0
+    );
+
+    return res.status(200).json({
+      organiserId,
+      totalRevenue: totalRevenueAllMonths,
+      revenue: revenueData,
+      paymentDetails: paymentDetails,
+    });
+  } catch (error) {
+    console.error("Error calculating monthly revenue:", error);
+    return res.status(500).json({ error: "Internal Server Error" });
   }
 };
