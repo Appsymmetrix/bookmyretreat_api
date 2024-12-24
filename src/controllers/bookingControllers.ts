@@ -560,16 +560,16 @@ export const getBookingsForRetreat = async (
       },
       {
         $lookup: {
-          from: "users", // Lookup to the User collection
-          localField: "userId", // Assuming `userId` is the field in the Booking collection
-          foreignField: "_id", // Matching the `_id` field in the User collection
-          as: "userDetails", // The resulting array will be stored in "userDetails"
+          from: "users",
+          localField: "userId",
+          foreignField: "_id",
+          as: "userDetails",
         },
       },
-      { $unwind: "$userDetails" }, // Unwind to access the user details
+      { $unwind: "$userDetails" },
       {
         $facet: {
-          newBooking: [
+          confirmed: [
             { $match: { status: "confirmed" } },
             {
               $project: {
@@ -584,7 +584,7 @@ export const getBookingsForRetreat = async (
                 status: 1,
                 orderId: 1,
                 personName: 1,
-                mobileNumber: "$userDetails.mobileNumber", // Extracting mobileNumber from userDetails
+                mobileNumber: "$userDetails.mobileNumber",
                 dateOfBooking: 1,
               },
             },
@@ -604,7 +604,7 @@ export const getBookingsForRetreat = async (
                 status: 1,
                 orderId: 1,
                 personName: 1,
-                mobileNumber: "$userDetails.mobileNumber", // Extracting mobileNumber from userDetails
+                mobileNumber: "$userDetails.mobileNumber",
                 dateOfBooking: 1,
               },
             },
@@ -633,12 +633,12 @@ export const getBookingsForRetreat = async (
       },
       {
         $project: {
-          newBooking: "$newBooking",
+          confirmed: 1,
           completed: 1,
           cancelled: 1,
           totalBookings: {
             $concatArrays: [
-              { $ifNull: ["$newBooking", []] },
+              { $ifNull: ["$confirmed", []] },
               { $ifNull: ["$completed", []] },
               { $ifNull: ["$cancelled", []] },
             ],
