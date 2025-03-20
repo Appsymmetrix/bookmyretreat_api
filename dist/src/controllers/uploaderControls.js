@@ -22,8 +22,8 @@ const dotenv_1 = __importDefault(require("dotenv"));
 dotenv_1.default.config();
 const router = express_1.default.Router();
 const s3 = new aws_sdk_1.default.S3({
-    accessKeyId: "AKIA4MTWMT5NZ5SXUZHY",
-    secretAccessKey: "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",
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
     region: "us-east-1",
 });
 const storage = multer_1.default.memoryStorage();
