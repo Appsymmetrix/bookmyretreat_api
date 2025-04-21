@@ -114,8 +114,8 @@ const uploadPDFs = async (req: Request, res: Response): Promise<void> => {
 
         const uploadParams: AWS.S3.PutObjectRequest = {
           Bucket: req.query.bucketName
-            ? `bookmyretreat-v1/${req.query.bucketName}`
-            : "bookmyretreat-v1",
+            ? `offers-v1/${req.query.bucketName}`
+            : "offers-v1",
           Key: uniqueFilename,
           Body: file.buffer,
           ContentType: "application/pdf",
