@@ -26,6 +26,8 @@ const supportedFormats = [
   "image/tiff",
 ];
 
+const supportedPDFs = ["application/pdf"];
+
 const uploadImages = async (req: Request, res: Response): Promise<void> => {
   if (!req.files || (req.files as Express.Multer.File[]).length === 0) {
     res.status(400).json({ error: "No files uploaded" });
@@ -94,6 +96,54 @@ const uploadImages = async (req: Request, res: Response): Promise<void> => {
   }
 };
 
+const uploadPDFs = async (req: Request, res: Response): Promise<void> => {
+  if (!req.files || (req.files as Express.Multer.File[]).length === 0) {
+    res.status(400).json({ error: "No files uploaded" });
+    return;
+  }
+
+  const promises = (req.files as Express.Multer.File[]).map(
+    (file) =>
+      new Promise((resolve, reject) => {
+        if (!supportedPDFs.includes(file.mimetype)) {
+          reject(`Unsupported file format: ${file.mimetype}`);
+          return;
+        }
+
+        const uniqueFilename = `${uuidv4()}-${Date.now()}.pdf`;
+
+        const uploadParams: AWS.S3.PutObjectRequest = {
+          Bucket: req.query.bucketName
+            ? `bookmyretreat-v1/${req.query.bucketName}`
+            : "bookmyretreat-v1",
+          Key: uniqueFilename,
+          Body: file.buffer,
+          ContentType: "application/pdf",
+          ACL: "public-read",
+        };
+
+        s3.upload(uploadParams, (error, data) => {
+          if (error) {
+            console.error("S3 upload error:", error);
+            reject("Failed to upload PDF");
+          } else {
+            resolve({
+              pdfUrl: data.Location,
+            });
+          }
+        });
+      })
+  );
+
+  try {
+    const pdfData = await Promise.all(promises);
+    res.status(200).json({ pdfs: pdfData });
+  } catch (error) {
+    console.error("Error uploading PDFs:", error);
+    res.status(500).json({ error });
+  }
+};
+
 const deleteImage = async (req: Request, res: Response): Promise<void> => {
   const { url } = req.query;
 
@@ -123,6 +173,7 @@ const deleteImage = async (req: Request, res: Response): Promise<void> => {
 
 export const uploadController = {
   uploadImages: [upload.array("images", 10), uploadImages],
+  uploadPDFs: [upload.array("files", 5), uploadPDFs], // use different field name if needed
   deleteImage,
 };
 
